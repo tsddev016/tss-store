@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TSS The Swift Store</title>
+<meta name="description" content="Jogos da TSS The Swift Store. Baixe o TSS Hub e receba as atualizações automaticamente.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-70 -70 140 140'%3E%3Cpolygon fill='%23e6cf4a' points='0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54'/%3E%3C/svg%3E">
+<style>
+:root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg) radial-gradient(ellipse at 50% -10%,#3a3210 0,transparent 60%) no-repeat;color:var(--text);font:400 1rem/1.6 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh}
+a{color:inherit}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:1rem clamp(1rem,4vw,3rem)}
+.brand{display:flex;align-items:center;gap:.7rem;font-weight:800;letter-spacing:.12em}
+.brand svg{width:34px;height:34px;fill:var(--gold)}
+.brand small{display:block;font-size:.62rem;color:var(--gold);letter-spacing:.35em;font-weight:400}
+nav a{color:var(--mute);text-decoration:none;margin-left:1.2rem;font-weight:600}nav a:hover{color:var(--gold)}
+.hero{text-align:center;padding:3.5rem 1rem 2.5rem;max-width:860px;margin:0 auto}
+.hero svg{width:96px;fill:var(--gold);filter:drop-shadow(0 0 22px rgba(230,207,74,.45))}
+.hero h1{margin:.4rem 0 0;font-size:clamp(2.4rem,9vw,4.6rem);letter-spacing:.14em;line-height:1}
+.hero p.sub{color:var(--gold);letter-spacing:.5em;margin:.3rem 0 1.4rem;font-size:clamp(.7rem,2.5vw,1rem)}
+.hero p.lead{color:var(--mute);max-width:36rem;margin:0 auto 1.6rem}
+.btn{display:inline-block;background:var(--gold);color:#14110a;font-weight:800;text-decoration:none;padding:.85rem 1.6rem;border-radius:10px;border:0;cursor:pointer;font-size:1rem}
+.btn:hover{background:var(--gold2)}
+.btn.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);margin-left:.5rem}
+.btn.off{opacity:.45;pointer-events:none}
+main{max-width:1120px;margin:0 auto;padding:0 clamp(1rem,4vw,3rem) 4rem}
+h2{font-size:.8rem;letter-spacing:.3em;color:var(--mute);margin:1rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:1.4rem}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-3px);border-color:var(--gold2)}
+.card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#1d1a0b}
+.card .b{padding:1.1rem 1.2rem 1.3rem;display:flex;flex-direction:column;gap:.55rem;flex:1}
+.card h3{margin:0;font-size:1.25rem}
+.tags{display:flex;gap:.4rem;flex-wrap:wrap}
+.tags span{background:var(--line);color:var(--mute);font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:5px;letter-spacing:.08em}
+.card p{margin:0;color:var(--mute);font-size:.92rem;flex:1}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
+.meta small{color:var(--mute)}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:3rem}
+.how div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem}
+.how b{color:var(--gold);display:block;font-size:1.6rem}
+footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3rem;border-top:1px solid var(--line)}
+#msg{color:var(--mute);text-align:center;padding:2rem}
+</style></head><body>
+<header>
+  <div class="brand"><svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><div>TSS<small>THE SWIFT STORE</small></div></div>
+  <nav><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
+</header>
+<section class="hero">
+  <svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg>
+  <h1>TSS</h1><p class="sub">THE SWIFT STORE</p>
+  <p class="lead">Jogos feitos por <b>@TS_KKJJ</b>. Instale o TSS Hub uma vez e receba cada versão nova automaticamente, sem baixar tudo de novo.</p>
+  <a class="btn off" id="hubbtn" href="#hub">Baixar o TSS Hub</a><a class="btn ghost" href="#jogos">Ver jogos</a>
+</section>
+<main>
+  <h2 id="jogos">JOGOS</h2>
+  <div class="grid" id="grid"></div><div id="msg">Carregando…</div>
+  <h2 id="hub" style="margin-top:3rem">COMO FUNCIONA</h2>
+  <div class="how">
+    <div><b>1</b>Baixe e instale o <b style="display:inline;font-size:1rem">TSS Hub</b>.</div>
+    <div><b>2</b>Ele acha seus jogos no PC e mostra os do site, com capa e descrição.</div>
+    <div><b>3</b>Saiu versão nova? O Hub avisa e atualiza com um clique.</div>
+  </div>
+</main>
+<footer>© TSS The Swift Store · Desenvolvedor @TS_KKJJ · <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a></footer>
+<script>
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const safe=u=>/^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:"";
+fetch("catalog.json",{cache:"no-cache"}).then(r=>r.json()).then(d=>{
+  const hub=d.hub||{},b=document.getElementById("hubbtn");
+  if(hub.download_url&&safe(hub.download_url)){b.href=safe(hub.download_url);b.classList.remove("off");b.textContent="Baixar o TSS Hub v"+esc(hub.version)}
+  const g=d.games||[],grid=document.getElementById("grid");
+  document.getElementById("msg").style.display=g.length?"none":"block";
+  if(!g.length)document.getElementById("msg").textContent="Nenhum jogo publicado ainda.";
+  grid.innerHTML=g.map(x=>`<article class="card"><img src="${esc(safe(x.capsule_url))}" alt="Capa de ${esc(x.name)}" loading="lazy">
+    <div class="b"><h3>${esc(x.name)}</h3><div class="tags">${(x.tags||[]).map(t=>`<span>${esc(t)}</span>`).join("")}</div>
+    <p>${esc(x.description)}</p><div class="meta"><small>v${esc(x.version)}${x.size_mb?" · "+esc(x.size_mb)+" MB":""}</small>
+    ${x.download_url?`<a class="btn" href="${esc(safe(x.download_url))}">Baixar</a>`:`<small>Em breve</small>`}</div></div></article>`).join("");
+}).catch(()=>{document.getElementById("msg").textContent="Não consegui carregar o catálogo agora."});
+</script></body></html>

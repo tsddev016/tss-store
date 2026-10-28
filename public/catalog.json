@@ -1,0 +1,20 @@
+{
+  "updated": "2026-10-28",
+  "hub": { "version": "2.0", "download_url": "" },
+  "games": [
+    {
+      "id": "backrooms",
+      "name": "Backrooms: Cadê a Porta?",
+      "version": "13",
+      "developer": "TS_KKJJ",
+      "description": "Você acorda nas Backrooms: corredores amarelados que não acabam, luzes que piscam e algo observando. Ache as chaves, abra a porta certa e descubra o que existe do outro lado. Singleplayer e online.",
+      "tags": ["TERROR", "EXPLORAÇÃO", "VISUAL PS1", "ONLINE"],
+      "capsule_url": "capsules/backrooms.jpg",
+      "download_url": "",
+      "sha256": "",
+      "size_mb": 21,
+      "launch": "Backrooms_Cade_a_Porta/sistema/executor.py",
+      "changelog": "Introdução TSS The Swift Store ao abrir o jogo."
+    }
+  ]
+}

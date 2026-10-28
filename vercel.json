@@ -1,0 +1,7 @@
+{
+  "cleanUrls": true,
+  "outputDirectory": "public",
+  "headers": [
+    { "source": "/catalog.json", "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }, { "key": "Access-Control-Allow-Origin", "value": "*" }] }
+  ]
+}

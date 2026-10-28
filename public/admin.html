@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>TSS · Painel de publicação</title>
+<style>
+:root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;--red:#e0685a;--green:#7fcf8a;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:400 1rem/1.5 "Segoe UI",system-ui,Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:1.5rem clamp(1rem,4vw,2rem) 4rem}
+h1{font-size:1.5rem;margin:.2rem 0}h1 span{color:var(--gold)}
+p.mute,.hint{color:var(--mute);font-size:.88rem}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.2rem 1.3rem;margin:1rem 0}
+.box h2{margin:0 0 .8rem;font-size:.8rem;letter-spacing:.25em;color:var(--gold)}
+label{display:block;font-weight:600;font-size:.88rem;margin:.7rem 0 .2rem}
+input,textarea,select{width:100%;background:#0d0c07;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:.6rem .7rem;font:inherit}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--gold2);outline-offset:1px}
+textarea{min-height:90px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}@media(max-width:560px){.row{grid-template-columns:1fr}}
+button{background:var(--gold);color:#14110a;font-weight:800;border:0;border-radius:10px;padding:.8rem 1.4rem;font-size:1rem;cursor:pointer}
+button:hover{background:var(--gold2)}button:disabled{opacity:.5;cursor:wait}
+button.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);font-weight:600;padding:.5rem 1rem}
+#log{white-space:pre-wrap;font:.85rem/1.5 Consolas,monospace;color:var(--mute);max-height:260px;overflow:auto}
+.ok{color:var(--green)}.err{color:var(--red)}
+a{color:var(--gold)}
+</style></head><body><main>
+<h1><span>★</span> TSS · Painel de publicação</h1>
+<p class="mute">Publique um jogo (ou uma versão nova). O Hub de quem já tem o jogo mostra “Nova versão detectada” sozinho.</p>
+
+<div class="box"><h2>1 · CONEXÃO COM O GITHUB</h2>
+  <div class="row"><div><label for="owner">Usuário do GitHub</label><input id="owner" autocomplete="off"></div>
+  <div><label for="repo">Repositório do site</label><input id="repo" autocomplete="off"></div></div>
+  <label for="token">Token do GitHub (fica só neste navegador)</label>
+  <input id="token" type="password" autocomplete="off" placeholder="github_pat_…">
+  <p class="hint">Crie em GitHub › Settings › Developer settings › Fine-grained tokens, só para este repositório, com <b>Contents: Read and write</b>. Nunca cole o token em lugar nenhum além daqui.</p>
+  <button class="ghost" id="saveCfg" type="button">Salvar conexão</button>
+</div>
+
+<div class="box"><h2>2 · O QUE PUBLICAR</h2>
+  <label for="kind">Tipo</label>
+  <select id="kind"><option value="game">Jogo</option><option value="hub">Instalador do TSS Hub</option></select>
+  <div id="pickWrap"><label for="pick">Jogo já no catálogo (opcional, preenche os campos)</label><select id="pick"><option value="">— novo jogo —</option></select></div>
+  <div class="row" id="idrow"><div><label for="gid">ID do jogo (a-z, 0-9, - _)</label><input id="gid" placeholder="backrooms"></div>
+  <div><label for="name">Nome</label><input id="name" placeholder="Backrooms: Cadê a Porta?"></div></div>
+  <div class="row"><div><label for="ver">Versão (maior que a atual)</label><input id="ver" placeholder="14"></div>
+  <div><label for="launch">Arquivo que abre o jogo (dentro do zip)</label><input id="launch" placeholder="Pasta/sistema/executor.py"></div></div>
+  <label for="desc">Descrição (aparece no Hub e no site)</label><textarea id="desc"></textarea>
+  <div class="row"><div><label for="tags">Tags (vírgula)</label><input id="tags" placeholder="TERROR, ONLINE"></div>
+  <div><label for="dev">Desenvolvedor</label><input id="dev" value="TS_KKJJ"></div></div>
+  <label for="chg">Novidades desta versão</label><textarea id="chg"></textarea>
+  <div class="row"><div><label for="zip">Arquivo do jogo (.zip) ou instalador</label><input id="zip" type="file" accept=".zip,.exe"></div>
+  <div><label for="cap">Cápsula (imagem, opcional se já existe)</label><input id="cap" type="file" accept="image/*"></div></div>
+</div>
+
+<div class="box"><h2>3 · PUBLICAR</h2>
+  <button id="go" type="button">Publicar agora</button>
+  <p class="hint">Sobe o arquivo em GitHub Releases, calcula o SHA-256 (o Hub confere ao baixar), atualiza o catálogo e o site republica em ~30 s.</p>
+  <div id="log" role="status" aria-live="polite"></div>
+</div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const LS="tss_admin";
+const cfg=JSON.parse(localStorage.getItem(LS)||"{}");
+$("owner").value=cfg.owner||"";$("repo").value=cfg.repo||"tss-store";$("token").value=cfg.token||"";
+$("saveCfg").onclick=()=>{try{localStorage.setItem(LS,JSON.stringify({owner:$("owner").value.trim(),repo:$("repo").value.trim(),token:$("token").value.trim()}))}catch(e){}log("Conexão salva neste navegador.","ok")};
+function log(t,c){const d=document.createElement("div");if(c)d.className=c;d.textContent=t;$("log").appendChild(d);$("log").scrollTop=1e9}
+const C=()=>({o:$("owner").value.trim(),r:$("repo").value.trim(),t:$("token").value.trim()});
+async function gh(path,opt={},base="https://api.github.com"){
+  const {t}=C();
+  const r=await fetch(base+path,{...opt,headers:{Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",Authorization:"Bearer "+t,...(opt.headers||{})}});
+  if(!r.ok){const e=new Error(r.status+" "+(await r.text()).slice(0,240));e.status=r.status;throw e}
+  return r.status===204?null:r.json();
+}
+const b64d=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0)));
+const b64e=s=>{const b=new TextEncoder().encode(s);let x="";for(let i=0;i<b.length;i+=8192)x+=String.fromCharCode(...b.subarray(i,i+8192));return btoa(x)};
+const bufB64=buf=>{const b=new Uint8Array(buf);let x="";for(let i=0;i<b.length;i+=8192)x+=String.fromCharCode(...b.subarray(i,i+8192));return btoa(x)};
+const hex=buf=>[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+let cat={games:[]};
+fetch("catalog.json",{cache:"no-cache"}).then(r=>r.json()).then(d=>{cat=d;(d.games||[]).forEach(g=>{const o=document.createElement("option");o.value=g.id;o.textContent=g.name+" (v"+g.version+")";$("pick").appendChild(o)})}).catch(()=>{});
+$("pick").onchange=()=>{const g=(cat.games||[]).find(x=>x.id===$("pick").value);if(!g)return;
+  $("gid").value=g.id;$("name").value=g.name;$("launch").value=g.launch||"";$("desc").value=g.description||"";$("tags").value=(g.tags||[]).join(", ");$("dev").value=g.developer||""};
+$("kind").onchange=()=>{const h=$("kind").value==="hub";$("pickWrap").style.display=h?"none":"";$("idrow").style.display=h?"none":"";$("launch").disabled=h};
+async function capsuleJpeg(file){
+  const img=await createImageBitmap(file),cv=document.createElement("canvas");cv.width=896;cv.height=504;
+  const x=cv.getContext("2d"),s=Math.max(896/img.width,504/img.height),w=img.width*s,h=img.height*s;
+  x.drawImage(img,(896-w)/2,(504-h)/2,w,h);
+  return new Promise(r=>cv.toBlob(r,"image/jpeg",.88));
+}
+async function putFile(path,contentB64,msg){
+  const {o,r}=C();let sha;
+  try{sha=(await gh(`/repos/${o}/${r}/contents/${path}`)).sha}catch(e){if(e.status!==404)throw e}
+  return gh(`/repos/${o}/${r}/contents/${path}`,{method:"PUT",body:JSON.stringify({message:msg,content:contentB64,...(sha?{sha}:{})})});
+}
+$("go").onclick=async()=>{
+  const {o,r,t}=C();$("log").textContent="";
+  const hub=$("kind").value==="hub";
+  const gid=hub?"hub":$("gid").value.trim().toLowerCase(),ver=$("ver").value.trim(),zip=$("zip").files[0],cap=$("cap").files[0];
+  try{
+    if(!o||!r||!t)throw new Error("Preencha a conexão com o GitHub (passo 1).");
+    if(!/^[a-z0-9_-]{1,40}$/.test(gid))throw new Error("ID inválido. Use a-z, 0-9, - e _.");
+    if(!ver)throw new Error("Informe a versão.");
+    if(!hub&&!$("name").value.trim())throw new Error("Informe o nome do jogo.");
+    $("go").disabled=true;
+    let url="",sha="",size=0;
+    const old=(cat.games||[]).find(g=>g.id===gid);
+    if(zip){
+      log("Calculando SHA-256…");const buf=await zip.arrayBuffer();sha=hex(await crypto.subtle.digest("SHA-256",buf));size=Math.round(zip.size/1048576);
+      const tag=`${gid}-v${ver}`;log("Criando release "+tag+"…");let rel;
+      try{rel=await gh(`/repos/${o}/${r}/releases`,{method:"POST",body:JSON.stringify({tag_name:tag,name:`${$("name").value.trim()||gid} v${ver}`,body:$("chg").value,draft:false,prerelease:false})})}
+      catch(e){if(e.status!==422)throw e;rel=await gh(`/repos/${o}/${r}/releases/tags/${tag}`)}
+      const nm=zip.name.replace(/[^A-Za-z0-9._-]/g,"_");
+      for(const a of rel.assets||[]){if(a.name===nm)await gh(`/repos/${o}/${r}/releases/assets/${a.id}`,{method:"DELETE"})}
+      log("Enviando arquivo ("+size+" MB)… não feche a página.");
+      const up=await gh(`/repos/${o}/${r}/releases/${rel.id}/assets?name=${encodeURIComponent(nm)}`,{method:"POST",headers:{"Content-Type":zip.type||"application/octet-stream"},body:buf},"https://uploads.github.com");
+      url=up.browser_download_url;log("Arquivo no ar: "+url,"ok");
+    }else if(old&&old.download_url&&!hub){url=old.download_url;sha=old.sha256||"";size=old.size_mb||0;log("Sem arquivo novo: mantendo o link atual.")}
+    else if(hub&&cat.hub&&cat.hub.download_url){url=cat.hub.download_url}
+    let capUrl=old?old.capsule_url:"";
+    if(cap&&!hub){log("Enviando cápsula…");const blob=await capsuleJpeg(cap);await putFile(`public/capsules/${gid}.jpg`,bufB64(await blob.arrayBuffer()),`Cápsula de ${gid}`);capUrl=`capsules/${gid}.jpg`}
+    log("Atualizando catálogo…");
+    const cur=await gh(`/repos/${o}/${r}/contents/public/catalog.json`);const data=JSON.parse(b64d(cur.content));data.games=data.games||[];
+    if(hub){data.hub={version:ver,download_url:url}}
+    else{
+      const e={id:gid,name:$("name").value.trim(),version:ver,developer:$("dev").value.trim(),description:$("desc").value.trim(),
+        tags:$("tags").value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean),capsule_url:capUrl||"",download_url:url,sha256:sha,size_mb:size,
+        launch:$("launch").value.trim().replace(/\\/g,"/"),changelog:$("chg").value.trim()};
+      const i=data.games.findIndex(g=>g.id===gid);if(i>=0)data.games[i]={...data.games[i],...e};else data.games.push(e);
+    }
+    data.updated=new Date().toISOString().slice(0,10);
+    await gh(`/repos/${o}/${r}/contents/public/catalog.json`,{method:"PUT",body:JSON.stringify({message:`Publicar ${gid} v${ver}`,content:b64e(JSON.stringify(data,null,2)+"\n"),sha:cur.sha})});
+    log("PRONTO! O site republica em ~30 s e o Hub passa a mostrar “Nova versão detectada”.","ok");
+  }catch(e){log("ERRO: "+e.message,"err");if(/uploads|Failed to fetch/i.test(e.message))log("Se o envio do arquivo falhou: abra a página de Releases do repositório, crie a release à mão, arraste o zip e rode de novo sem escolher arquivo.","err")}
+  finally{$("go").disabled=false}
+};
+</script></body></html>
