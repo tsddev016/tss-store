@@ -2,6 +2,40 @@
   "cleanUrls": true,
   "outputDirectory": "public",
   "headers": [
-    { "source": "/catalog.json", "headers": [{ "key": "Cache-Control", "value": "no-cache, must-revalidate" }, { "key": "Access-Control-Allow-Origin", "value": "*" }] }
+    {
+      "source": "/catalog.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    },
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/resgatar",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    }
   ]
 }
