@@ -19,8 +19,8 @@
       ],
       "capsule_url": "capsules/backrooms.jpg",
       "download_url": "",
-      "sha256": "",
-      "size_mb": 21,
+      "sha256": "dd76b3825b37c2cb91af7a602219f6b163d72edd8fbc70c7c7b386a24ee2584b",
+      "size_mb": 22,
       "launch": "Backrooms_Cade_a_Porta/sistema/executor.py",
       "changelog": "Introdução TSS The Swift Store ao abrir o jogo.",
       "protegido": true
