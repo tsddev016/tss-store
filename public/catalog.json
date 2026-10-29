@@ -22,6 +22,24 @@
       "changelog": "",
       "protegido": true,
       "preco": 4.5
+    },
+    {
+      "id": "backrooms_demo",
+      "name": "Backrooms: Cadê a Porta? DEMO",
+      "version": "1",
+      "developer": "TS_KKJJ",
+      "description": "DEMO",
+      "tags": [
+        "TERRO"
+      ],
+      "capsule_url": "capsules/backrooms_demo.png",
+      "download_url": "https://tss-store.vercel.app/api/baixar-gratis?jogo=backrooms_demo",
+      "sha256": "462d230d8babb412105270f41f58be40a331032bbd48477e29423c41e7171e5f",
+      "size_mb": 22,
+      "launch": "Backrooms_Cade_a_Porta_DEMO/sistema/executor.py",
+      "changelog": "",
+      "protegido": false,
+      "preco": 0
     }
   ]
 }
