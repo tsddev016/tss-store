@@ -1,11 +1,9 @@
 // TSS Sentinela - confere a chave de ativacao e libera o download do jogo.
-// Roda na Vercel. Variavel obrigatoria: GH_TOKEN (token do GitHub so com acesso ao repositorio "cofre").
 const crypto = require("crypto");
+const R = require("./_release");
 
-const GH = "https://api.github.com";
-const COFRE = process.env.COFRE_REPO || "tsddev016/tss-cofre";   // repositorio PRIVADO (jogos + chaves.json)
-const SITE = process.env.SITE_REPO || "tsddev016/tss-store";     // repositorio publico (catalog.json)
-const MAX_PADRAO = 2;                                            // computadores por chave
+const COFRE = process.env.COFRE_REPO || "tsddev016/tss-cofre";
+const MAX_PADRAO = 2;
 
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
 const norm = (k) => String(k || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -24,14 +22,14 @@ class Falha extends Error {
 }
 
 async function lerChaves() {
-  const r = await fetch(`${GH}/repos/${COFRE}/contents/chaves.json`, { headers: hdr(), cache: "no-store" });
+  const r = await fetch(`${R.GH}/repos/${COFRE}/contents/chaves.json`, { headers: hdr(), cache: "no-store" });
   if (!r.ok) throw new Falha(503, "Servidor da TSS indisponivel no momento. Tente de novo.", "cofre");
   const j = await r.json();
   return { data: JSON.parse(Buffer.from(j.content, "base64").toString("utf8")), sha: j.sha };
 }
 
 async function gravarChaves(data, shaAtual) {
-  const r = await fetch(`${GH}/repos/${COFRE}/contents/chaves.json`, {
+  const r = await fetch(`${R.GH}/repos/${COFRE}/contents/chaves.json`, {
     method: "PUT", headers: hdr({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       message: "sentinela: ativacao de computador",
@@ -39,12 +37,11 @@ async function gravarChaves(data, shaAtual) {
       sha: shaAtual,
     }),
   });
-  if (r.status === 409 || r.status === 422) return false;      // alguem gravou ao mesmo tempo: tenta de novo
+  if (r.status === 409 || r.status === 422) return false;
   if (!r.ok) throw new Falha(503, "Servidor da TSS indisponivel no momento. Tente de novo.", "cofre");
   return true;
 }
 
-// Confere a chave e registra este computador (ate "max" computadores por chave).
 async function validar(chave, jogo, maquina) {
   for (let t = 0; t < 4; t++) {
     const { data, sha: fsha } = await lerChaves();
@@ -64,23 +61,13 @@ async function validar(chave, jogo, maquina) {
   throw new Falha(503, "Muitos acessos ao mesmo tempo. Tente de novo em alguns segundos.", "ocupado");
 }
 
-// Devolve um link temporario (poucos minutos) do arquivo do jogo no cofre privado.
 async function linkDoJogo(jogo) {
-  const rc = await fetch(`${GH}/repos/${SITE}/contents/public/catalog.json`, {
-    headers: hdr({ Accept: "application/vnd.github.raw+json" }), cache: "no-store" });
-  if (!rc.ok) throw new Falha(503, "Catalogo indisponivel no momento.", "catalogo");
-  const cat = await rc.json();
-  const g = (cat.games || []).find((x) => x.id === jogo);
-  if (!g) throw new Falha(404, "Jogo nao encontrado no catalogo.", "sem_jogo");
-  const rr = await fetch(`${GH}/repos/${COFRE}/releases/tags/${encodeURIComponent(jogo + "-v" + g.version)}`, { headers: hdr() });
-  if (!rr.ok) throw new Falha(404, "A versao " + g.version + " deste jogo ainda nao foi publicada.", "sem_release");
-  const rel = await rr.json();
-  const a = (rel.assets || []).find((x) => /\.zip$/i.test(x.name)) || (rel.assets || [])[0];
-  if (!a) throw new Falha(404, "Arquivo do jogo nao encontrado.", "sem_arquivo");
-  const rd = await fetch(a.url, { headers: hdr({ Accept: "application/octet-stream" }), redirect: "manual" });
-  const loc = rd.headers.get("location");
-  if (!loc || ![301, 302, 303, 307, 308].includes(rd.status)) throw new Falha(503, "Nao consegui liberar o download. Tente de novo.", "download");
-  return { url: loc, sha256: g.sha256 || "", versao: String(g.version) };
+  try {
+    const d = await R.resolverDownload(jogo);
+    return { url: d.url, sha256: d.sha256 || "", versao: d.versao };
+  } catch (e) {
+    throw new Falha(e.status || 503, e.message || "Falha no download.", e.codigo || "download");
+  }
 }
 
 module.exports = async (req, res) => {
