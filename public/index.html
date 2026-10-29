@@ -92,6 +92,8 @@ footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3r
 footer a{color:var(--gold);text-decoration:none}
 footer a:hover{text-decoration:underline}
 .preco{font-weight:700;color:var(--gold)}
+a.ph{display:block}.tl{text-decoration:none}.tl:hover{color:var(--gold)}
+.news{display:grid;gap:.9rem}.news article{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.3rem}.news h3{margin:.2rem 0 .4rem;font-size:1.05rem}.news p{margin:0;color:var(--mute)}.news time{font-size:.75rem;color:var(--gold);letter-spacing:.12em}.news a{color:var(--gold);text-decoration:none;font-size:.9rem}
 @media (max-width:560px){.btn.ghost{margin:.6rem 0 0}.hero{padding-top:3rem}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
 </style>
@@ -99,7 +101,7 @@ footer a:hover{text-decoration:underline}
 <body>
 <header>
   <a class="brand" href="/" aria-label="TSS The Swift Store - início"><svg viewBox="-70 -70 140 140" aria-hidden="true"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><span>TSS<small>THE SWIFT STORE</small></span></a>
-  <nav aria-label="Principal"><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="#faq">Dúvidas</a><a href="/resgatar">Resgatar chave</a><a href="/conta" id="navconta">Entrar</a><a class="pill" href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
+  <nav aria-label="Principal"><a href="#jogos">Jogos</a><a href="#novidades">Novidades</a><a href="#hub">TSS Hub</a><a href="#faq">Dúvidas</a><a href="/resgatar">Resgatar chave</a><a href="/conta" id="navconta">Entrar</a><a class="pill" href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
 </header>
 
 <section class="hero">
@@ -116,6 +118,9 @@ footer a:hover{text-decoration:underline}
   <div id="msg"></div>
   <p class="mut" style="font-size:.85rem;margin-top:1rem">Aviso: jogos de terror podem ter sustos, sons altos e luzes piscantes. Pessoas com epilepsia fotossensível devem consultar um médico antes de jogar. Recomendado para maiores de 16 anos, salvo indicação diferente na descrição.</p>
   <noscript><p>Ative o JavaScript para ver o catálogo. Jogo em destaque: <b>Backrooms: Cadê a Porta?</b>, um jogo de terror e exploração dos corredores amarelos.</p></noscript>
+
+  <h2 id="novidades">NOVIDADES</h2>
+  <div class="news" id="news" aria-live="polite"><p style="color:var(--mute)">Carregando novidades…</p></div>
 
   <h2 id="hub">COMO FUNCIONA</h2>
   <div class="how">
@@ -154,7 +159,7 @@ function card(x){
   var badge=x.protegido?fmtPreco(x.preco):((x.download_url||x.disponivel)?"GRÁTIS":"EM BREVE");
   var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"");
   var tags=(x.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
-  return '<article class="card"><div class="ph"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"><span class="badge">'+esc(badge)+'</span></div><div class="b"><h3>'+esc(x.name)+'</h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
+  return '<article class="card"><a class="ph" href="/jogo?id='+encodeURIComponent(x.id)+'"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"><span class="badge">'+esc(badge)+'</span></a><div class="b"><h3><a class="tl" href="/jogo?id='+encodeURIComponent(x.id)+'">'+esc(x.name)+'</a></h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
 }
 function seo(g){
   try{
@@ -193,6 +198,14 @@ function carregar(){
     var m=document.getElementById("msg");m.style.display="block";m.textContent="Não consegui carregar o catálogo agora.";
   });
 }
+
+/* Mural de novidades: posts em /novidades.json (mais novo primeiro). */
+function dataBR(d){var m=String(d||"").match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+"/"+m[2]+"/"+m[1]:""}
+fetch("/novidades.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
+  var p=(d.posts||[]).slice().sort(function(a,b){return String(b.data).localeCompare(String(a.data))}).slice(0,5),box=document.getElementById("news");
+  if(!p.length){box.innerHTML='<p style="color:var(--mute)">Sem novidades por enquanto.</p>';return}
+  box.innerHTML=p.map(function(x){return'<article><time datetime="'+esc(x.data)+'">'+esc(dataBR(x.data))+'</time><h3>'+esc(x.titulo)+'</h3><p>'+esc(x.texto)+'</p>'+(x.jogo?'<p><a href="/jogo?id='+encodeURIComponent(x.jogo)+'">Ver o jogo →</a></p>':"")+'</article>'}).join("");
+}).catch(function(){document.getElementById("news").innerHTML='<p style="color:var(--mute)">Não consegui carregar as novidades agora.</p>'});
 carregar();
 setInterval(function(){if(!document.hidden)carregar()},5000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden)carregar()});
