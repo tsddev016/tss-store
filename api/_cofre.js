@@ -61,12 +61,11 @@ async function gravar(data, shaAtual, msg) {
   if (shaAtual) body.sha = shaAtual;
   const r = await fetch(`${GH}/repos/${COFRE}/contents/chaves.json`, {
     method: "PUT", headers: hdr({ "Content-Type": "application/json" }), body: JSON.stringify(body) });
-  if (r.status === 409 || r.status === 422) return false; // alguem gravou ao mesmo tempo
+  if (r.status === 409 || r.status === 422) return false;
   if (!r.ok) throw new Falha(503, "Cofre da TSS indisponivel no momento. Tente de novo.", "cofre");
   return true;
 }
 
-// Le, deixa fn alterar, grava (com nova tentativa se houver conflito). fn devolve { salvar, resultado }.
 async function mutar(fn, msg) {
   for (let t = 0; t < 5; t++) {
     const { data, sha: s } = await lerChaves();
@@ -83,7 +82,6 @@ function chaveAleatoria() {
   let k = ""; for (let i = 0; i < 20; i++) k += ALFA[crypto.randomInt(32)];
   return formatar(k);
 }
-// A chave de um pedido e sempre a mesma (HMAC), entao o comprador pode ver de novo sem guardarmos a chave em texto.
 function chaveDoPedido(pedido, jogo) {
   const seg = process.env.KEY_SECRET;
   if (!seg) throw new Falha(500, "Servidor ainda sem KEY_SECRET configurada.", "config");
@@ -95,15 +93,47 @@ function chaveDoPedido(pedido, jogo) {
 const idPedido = (p) => String(p == null ? "" : p).trim().toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 64);
 const hashEmail = (e) => sha(String(e || "").trim().toLowerCase());
 
-// Cria (ou devolve) a chave de um pedido. Idempotente: o mesmo pedido sempre da a mesma chave.
-function registrarPedido(data, { pedido, email, jogo, origem }) {
+// CPF: so digitos, 11 caracteres
+const soDigitos = (s) => String(s || "").replace(/\D/g, "");
+function normalizarCpf(c) {
+  const d = soDigitos(c);
+  return d.length === 11 ? d : "";
+}
+function hashCpf(c) {
+  const d = normalizarCpf(c);
+  return d ? sha("cpf:" + d) : "";
+}
+function cpfValido(c) {
+  const d = normalizarCpf(c);
+  if (!d || /^(\d)\1{10}$/.test(d)) return false;
+  let s = 0; for (let i = 0; i < 9; i++) s += Number(d[i]) * (10 - i);
+  let r = (s * 10) % 11; if (r === 10) r = 0; if (r !== Number(d[9])) return false;
+  s = 0; for (let i = 0; i < 10; i++) s += Number(d[i]) * (11 - i);
+  r = (s * 10) % 11; if (r === 10) r = 0; return r === Number(d[10]);
+}
+
+// Cria (ou devolve) a chave de um pedido. Idempotente.
+function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem }) {
   const pid = idPedido(pedido);
   if (!pid) throw new Falha(400, "Pedido sem identificacao.", "pedido");
   const chave = chaveDoPedido(pid, jogo);
   const h = sha(norm(chave));
   const ja = data.pedidos[pid];
   if (!ja) {
-    data.pedidos[pid] = { jogo, email: email ? hashEmail(email) : "", h, criado: agora(), origem: origem || "webhook" };
+    data.pedidos[pid] = {
+      jogo,
+      email: email ? hashEmail(email) : "",
+      cpf: cpf ? hashCpf(cpf) : "",
+      nome: nome ? String(nome).trim().slice(0, 80) : "",
+      h,
+      criado: agora(),
+      origem: origem || "webhook",
+    };
+  } else {
+    // completa dados se chegar depois
+    if (email && !ja.email) ja.email = hashEmail(email);
+    if (cpf && !ja.cpf) ja.cpf = hashCpf(cpf);
+    if (nome && !ja.nome) ja.nome = String(nome).trim().slice(0, 80);
   }
   if (!data.keys[h]) {
     data.keys[h] = { jogo, max: MAX_PADRAO, maquinas: [], criada: agora(), origem: origem || "webhook", pedido: pid };
@@ -117,4 +147,5 @@ function responder(res, e) {
 }
 
 module.exports = { Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
-  chaveAleatoria, chaveDoPedido, idPedido, hashEmail, registrarPedido, responder, MAX_PADRAO };
+  chaveAleatoria, chaveDoPedido, idPedido, hashEmail, hashCpf, normalizarCpf, cpfValido, soDigitos,
+  registrarPedido, responder, MAX_PADRAO };
