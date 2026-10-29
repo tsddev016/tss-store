@@ -1,104 +1,186 @@
 <!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8">
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>TSS The Swift Store</title>
-<meta name="description" content="Jogos da TSS The Swift Store.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-70 -70 140 140'%3E%3Cpolygon fill='%23e6cf4a' points='0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54'/%3E%3C/svg%3E">
+<title>TSS The Swift Store – Jogos indie brasileiros e TSS Hub</title>
+<meta name="description" content="Loja oficial TSS The Swift Store: baixe o TSS Hub e instale jogos indie brasileiros, como Backrooms: Cadê a Porta?, com atualizações automáticas.">
+<meta name="keywords" content="TSS The Swift Store, TSS Store, TSS Hub, jogos indie brasileiros, Backrooms Cadê a Porta, TS_KKJJ, loja de jogos">
+<meta name="author" content="TS_KKJJ">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<meta name="theme-color" content="#0d0c07">
+<link rel="canonical" href="https://tss-store.vercel.app/">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TSS The Swift Store">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="TSS The Swift Store – Jogos indie brasileiros e TSS Hub">
+<meta property="og:description" content="Instale o TSS Hub uma vez e receba cada versão nova dos jogos automaticamente. Backrooms: Cadê a Porta? e mais.">
+<meta property="og:url" content="https://tss-store.vercel.app/">
+<meta property="og:image" content="https://tss-store.vercel.app/capsules/backrooms.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TSS The Swift Store – Jogos indie brasileiros e TSS Hub">
+<meta name="twitter:description" content="Loja de jogos indie com o TSS Hub e atualizações automáticas.">
+<meta name="twitter:image" content="https://tss-store.vercel.app/capsules/backrooms.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebSite", "@id": "https://tss-store.vercel.app/#website", "url": "https://tss-store.vercel.app/", "name": "TSS The Swift Store", "alternateName": ["TSS Store", "The Swift Store", "TSS Hub"], "inLanguage": "pt-BR", "description": "Loja de jogos indie brasileiros com o TSS Hub e atualizações automáticas."}, {"@type": "Organization", "@id": "https://tss-store.vercel.app/#org", "name": "TSS The Swift Store", "url": "https://tss-store.vercel.app/", "logo": "https://tss-store.vercel.app/icon.svg", "sameAs": ["https://discord.gg/h5pD7XCMAf"]}, {"@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "O que é a TSS The Swift Store?", "acceptedAnswer": {"@type": "Answer", "text": "É a loja e o catálogo de jogos indie feitos por @TS_KKJJ. Você instala o TSS Hub uma vez e ele baixa e atualiza os jogos da loja para você."}}, {"@type": "Question", "name": "O que é o TSS Hub?", "acceptedAnswer": {"@type": "Answer", "text": "É o programa para PC da TSS The Swift Store. Ele acha seus jogos, mostra os jogos do site com capa e descrição e avisa quando sai uma versão nova, atualizando com um clique."}}, {"@type": "Question", "name": "Como compro um jogo?", "acceptedAnswer": {"@type": "Answer", "text": "Clique em Comprar Pix no jogo e pague pelo Pix no próprio site. Depois da confirmação, o jogo fica liberado para instalar pelo TSS Hub. Se você tem uma chave, use a página Resgatar chave."}}, {"@type": "Question", "name": "Existem jogos grátis?", "acceptedAnswer": {"@type": "Answer", "text": "Sim. Alguns jogos têm demo gratuita para você testar antes de comprar, como a demo de Backrooms: Cadê a Porta?."}}, {"@type": "Question", "name": "Como falo com o desenvolvedor?", "acceptedAnswer": {"@type": "Answer", "text": "Entre no servidor de Discord da comunidade TSS, o link está no topo e no rodapé do site."}}]}]}</script>
 <style>
-:root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
+:root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--panel2:#1d1a0c;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-behavior:smooth;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 4.5rem)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg) radial-gradient(ellipse at 50% -10%,#3a3210 0,transparent 60%) no-repeat;color:var(--text);font:400 1rem/1.6 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh}
+body{margin:0;background:var(--bg);background-image:radial-gradient(ellipse at 50% -10%,#3a3210 0,transparent 60%);background-repeat:no-repeat;color:var(--text);font:400 1rem/1.65 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh}
 a{color:inherit}
-header{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:1rem clamp(1rem,4vw,3rem)}
-.brand{display:flex;align-items:center;gap:.7rem;font-weight:800;letter-spacing:.12em}
-.brand svg{width:34px;height:34px;fill:var(--gold)}
-.brand small{display:block;font-size:.62rem;color:var(--gold);letter-spacing:.35em;font-weight:400}
-nav a{color:var(--mute);text-decoration:none;margin-left:1.2rem;font-weight:600}nav a:hover{color:var(--gold)}
-.hero{text-align:center;padding:3.5rem 1rem 2.5rem;max-width:860px;margin:0 auto}
-.hero svg{width:96px;fill:var(--gold);filter:drop-shadow(0 0 22px rgba(230,207,74,.45))}
-.hero h1{margin:.4rem 0 0;font-size:clamp(2.4rem,9vw,4.6rem);letter-spacing:.14em;line-height:1}
-.hero p.sub{color:var(--gold);letter-spacing:.5em;margin:.3rem 0 1.4rem;font-size:clamp(.7rem,2.5vw,1rem)}
-.hero p.lead{color:var(--mute);max-width:36rem;margin:0 auto 1.6rem}
-.btn{display:inline-block;background:var(--gold);color:#14110a;font-weight:800;text-decoration:none;padding:.85rem 1.6rem;border-radius:10px;border:0;cursor:pointer;font-size:1rem}
-.btn:hover{background:var(--gold2)}
-.btn.ghost{background:transparent;color:var(--mute);border:1px solid var(--line);margin-left:.5rem}
-.btn.off{opacity:.45;pointer-events:none}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:.75rem clamp(1rem,4vw,3rem);background:rgba(13,12,7,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid rgba(45,41,16,.8)}
+.brand{display:flex;align-items:center;gap:.7rem;font-weight:800;letter-spacing:.12em;text-decoration:none;line-height:1.1}
+.brand svg{width:34px;height:34px;fill:var(--gold);filter:drop-shadow(0 0 8px rgba(230,207,74,.45))}
+.brand small{display:block;font-size:.6rem;color:var(--gold);letter-spacing:.35em;font-weight:400}
+nav{display:flex;align-items:center;flex-wrap:wrap;gap:.2rem 1.2rem}
+nav a{color:var(--mute);text-decoration:none;font-weight:600;font-size:.95rem;transition:color .15s}
+nav a:hover{color:var(--gold)}
+nav a.pill{border:1px solid var(--gold2);color:var(--gold);padding:.3rem .9rem;border-radius:999px}
+nav a.pill:hover{background:var(--gold);color:#141108}
+.hero{position:relative;isolation:isolate;text-align:center;padding:4.5rem 1rem 3rem;max-width:900px;margin:0 auto}
+.hero::before{content:"";position:absolute;z-index:-1;left:50%;top:-2rem;width:min(900px,140%);height:520px;transform:translateX(-50%);background:radial-gradient(closest-side,rgba(230,207,74,.17),transparent);pointer-events:none}
+.hero .star{width:104px;fill:var(--gold);filter:drop-shadow(0 0 26px rgba(230,207,74,.55));animation:float 5s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(4deg)}}
+.hero h1{margin:.5rem 0 0;font-size:clamp(3.2rem,13vw,5.8rem);letter-spacing:.14em;line-height:1;background:linear-gradient(180deg,#fff6bf,var(--gold) 55%,var(--gold2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent}
+.hero h1 span{display:block;margin:.9rem -.5em 0 0;font-size:clamp(.72rem,2.6vw,1.02rem);letter-spacing:.5em;font-weight:600;text-transform:uppercase;background:none;-webkit-text-fill-color:var(--gold);color:var(--gold)}
+.hero p.lead{color:var(--mute);max-width:36rem;margin:1.4rem auto 1.8rem;font-size:1.05rem}
+.hero p.lead b{color:var(--text)}
+.btn{display:inline-block;background:linear-gradient(180deg,#f2dc62,var(--gold));color:#141108;font-weight:800;text-decoration:none;padding:.85rem 1.7rem;border-radius:12px;border:0;cursor:pointer;font-size:1rem;font-family:inherit;box-shadow:0 6px 22px rgba(230,207,74,.22);transition:transform .15s,box-shadow .15s,background .15s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(230,207,74,.34)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none;margin-left:.5rem}
+.btn.ghost:hover{border-color:var(--gold2);color:var(--gold)}
+.btn.off{opacity:.45;pointer-events:none;box-shadow:none}
+.chips{display:flex;flex-wrap:wrap;justify-content:center;gap:.5rem;margin-top:1.8rem}
+.chips span{border:1px solid var(--line);background:rgba(23,21,9,.7);color:var(--mute);font-size:.78rem;padding:.35rem .85rem;border-radius:999px}
 main{max-width:1120px;margin:0 auto;padding:0 clamp(1rem,4vw,3rem) 4rem}
-h2{font-size:.8rem;letter-spacing:.3em;color:var(--mute);margin:1rem 0}
+h2{display:flex;align-items:center;gap:1rem;font-size:.85rem;letter-spacing:.32em;color:var(--gold);margin:3.2rem 0 1.3rem;font-weight:700}
+h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:1.4rem}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:transform .15s,border-color .15s}
-.card:hover{transform:translateY(-3px);border-color:var(--gold2)}
-.card img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#1d1a0b}
-.card .b{padding:1.1rem 1.2rem 1.3rem;display:flex;flex-direction:column;gap:.55rem;flex:1}
-.card h3{margin:0;font-size:1.25rem}
+.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;transition:transform .18s,border-color .18s,box-shadow .18s}
+.card:hover{transform:translateY(-4px);border-color:var(--gold2);box-shadow:0 14px 34px rgba(0,0,0,.45),0 0 0 1px rgba(230,207,74,.12)}
+.ph{position:relative}
+.ph img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:#1d1a0b}
+.ph::after{content:"";position:absolute;inset:auto 0 0;height:45%;background:linear-gradient(transparent,rgba(23,21,9,.95));pointer-events:none}
+.badge{position:absolute;z-index:1;top:.7rem;right:.7rem;background:rgba(13,12,7,.82);border:1px solid var(--gold2);color:var(--gold);font-weight:800;font-size:.8rem;padding:.2rem .65rem;border-radius:999px;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.card .b{padding:1.1rem 1.25rem 1.3rem;display:flex;flex-direction:column;gap:.55rem;flex:1}
+.card h3{margin:0;font-size:1.25rem;line-height:1.25}
 .tags{display:flex;gap:.4rem;flex-wrap:wrap}
 .tags span{background:var(--line);color:var(--mute);font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:5px;letter-spacing:.08em}
 .card p{margin:0;color:var(--mute);font-size:.92rem;flex:1}
-.meta{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-top:.5rem}
 .meta small{color:var(--mute)}
-.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-top:3rem}
-.how div{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:1.1rem 1.2rem}
-.how b{color:var(--gold);display:block;font-size:1.6rem}
+.sk{min-height:360px;background:linear-gradient(100deg,var(--panel) 30%,#211e0d 50%,var(--panel) 70%);background-size:200% 100%;animation:sh 1.4s linear infinite;border:1px solid var(--line);border-radius:18px}
+@keyframes sh{to{background-position:-200% 0}}
+#msg{display:none;color:var(--mute);text-align:center;padding:2rem}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem}
+.how div{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.3rem;transition:border-color .18s}
+.how div:hover{border-color:var(--gold2)}
+.how b{display:grid;place-items:center;width:2.2rem;height:2.2rem;margin-bottom:.7rem;border-radius:50%;background:rgba(230,207,74,.12);border:1px solid var(--gold2);color:var(--gold);font-size:1rem}
+.about p{color:var(--mute);max-width:46rem;margin:0 0 1rem}
+.about p b,.about p a{color:var(--text)}
+details{background:var(--panel);border:1px solid var(--line);border-radius:14px;margin-bottom:.7rem;transition:border-color .18s}
+details[open]{border-color:var(--gold2)}
+summary{cursor:pointer;padding:1rem 1.2rem;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:1rem}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";color:var(--gold);font-size:1.3rem;line-height:1}
+details[open] summary::after{content:"–"}
+details p{margin:0;padding:0 1.2rem 1.1rem;color:var(--mute)}
 footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3rem;border-top:1px solid var(--line)}
-#msg{color:var(--mute);text-align:center;padding:2rem}
+footer a{color:var(--gold);text-decoration:none}
+footer a:hover{text-decoration:underline}
 .preco{font-weight:700;color:var(--gold)}
-</style></head><body>
+@media (max-width:560px){.btn.ghost{margin:.6rem 0 0}.hero{padding-top:3rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
 <header>
-  <div class="brand"><svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><div>TSS<small>THE SWIFT STORE</small></div></div>
-  <nav><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="/resgatar">Resgatar chave</a><a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
+  <a class="brand" href="/" aria-label="TSS The Swift Store - início"><svg viewBox="-70 -70 140 140" aria-hidden="true"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><span>TSS<small>THE SWIFT STORE</small></span></a>
+  <nav aria-label="Principal"><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="#faq">Dúvidas</a><a href="/resgatar">Resgatar chave</a><a class="pill" href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
 </header>
+
 <section class="hero">
-  <svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg>
-  <h1>TSS</h1><p class="sub">THE SWIFT STORE</p>
-  <p class="lead">Jogos feitos por <b>@TS_KKJJ</b>. Instale o TSS Hub uma vez e receba cada versao nova automaticamente.</p>
+  <svg class="star" viewBox="-70 -70 140 140" aria-hidden="true"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg>
+  <h1>TSS<span>The Swift Store</span></h1>
+  <p class="lead">Jogos indie brasileiros feitos por <b>@TS_KKJJ</b>. Instale o <b>TSS Hub</b> uma vez e receba cada versão nova automaticamente.</p>
   <a class="btn off" id="hubbtn" href="#hub">Baixar o TSS Hub</a><a class="btn ghost" href="#jogos">Ver jogos</a>
+  <div class="chips"><span>Atualização automática</span><span>Pagamento via Pix</span><span>Jogos para PC</span></div>
 </section>
+
 <main>
   <h2 id="jogos">JOGOS</h2>
-  <div class="grid" id="grid"></div><div id="msg">Carregando…</div>
-  <h2 id="hub" style="margin-top:3rem">COMO FUNCIONA</h2>
+  <div class="grid" id="grid" aria-live="polite"><div class="sk"></div><div class="sk"></div></div>
+  <div id="msg"></div>
+  <noscript><p>Ative o JavaScript para ver o catálogo. Jogo em destaque: <b>Backrooms: Cadê a Porta?</b>, um jogo de terror e exploração dos corredores amarelos.</p></noscript>
+
+  <h2 id="hub">COMO FUNCIONA</h2>
   <div class="how">
-    <div><b>1</b>Baixe e instale o <b style="display:inline;font-size:1rem">TSS Hub</b>.</div>
-    <div><b>2</b>Ele acha seus jogos no PC e mostra os do site, com capa e descricao.</div>
-    <div><b>3</b>Saiu versao nova? O Hub avisa e atualiza com um clique.</div>
+    <div><b>1</b>Baixe e instale o <strong>TSS Hub</strong>.</div>
+    <div><b>2</b>Ele acha seus jogos no PC e mostra os do site, com capa e descrição.</div>
+    <div><b>3</b>Saiu versão nova? O Hub avisa e atualiza com um clique.</div>
   </div>
+
+  <h2 id="sobre">SOBRE A LOJA</h2>
+  <div class="about">
+    <p>A <b>TSS The Swift Store</b> é uma loja de jogos indie brasileiros criada por <b>@TS_KKJJ</b>. Aqui você encontra jogos como <b>Backrooms: Cadê a Porta?</b> e acompanha os próximos lançamentos.</p>
+    <p>Tudo funciona pelo <b>TSS Hub</b>: um programa para PC que instala, organiza e atualiza os jogos da loja. Você paga pelo Pix, o jogo é liberado e as próximas versões chegam sozinhas. Dúvidas e novidades ficam na <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">comunidade no Discord</a>.</p>
+  </div>
+
+  <h2 id="faq">DÚVIDAS FREQUENTES</h2>
+  <details><summary>O que é a TSS The Swift Store?</summary><p>É a loja e o catálogo de jogos indie feitos por @TS_KKJJ. Você instala o TSS Hub uma vez e ele baixa e atualiza os jogos da loja para você.</p></details><details><summary>O que é o TSS Hub?</summary><p>É o programa para PC da TSS The Swift Store. Ele acha seus jogos, mostra os jogos do site com capa e descrição e avisa quando sai uma versão nova, atualizando com um clique.</p></details><details><summary>Como compro um jogo?</summary><p>Clique em Comprar Pix no jogo e pague pelo Pix no próprio site. Depois da confirmação, o jogo fica liberado para instalar pelo TSS Hub. Se você tem uma chave, use a página Resgatar chave.</p></details><details><summary>Existem jogos grátis?</summary><p>Sim. Alguns jogos têm demo gratuita para você testar antes de comprar, como a demo de Backrooms: Cadê a Porta?.</p></details><details><summary>Como falo com o desenvolvedor?</summary><p>Entre no servidor de Discord da comunidade TSS, o link está no topo e no rodapé do site.</p></details>
 </main>
+
 <footer>© TSS The Swift Store · Desenvolvedor @TS_KKJJ · <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a></footer>
+
 <script>
-function esc(s){
-  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
-    if(c==="&")return "\u0026amp;";
-    if(c==="<")return "\u0026lt;";
-    if(c===">")return "\u0026gt;";
-    if(c==='"')return "\u0026quot;";
-    return "\u0026#39;";
-  });
-}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c==='"'?"&quot;":"&#39;"})}
 function safe(u){return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:""}
-function fmtPreco(p){var n=Number(p);if(!Number.isFinite(n)||n<=0)return"Gratis (teste)";return"R$ "+n.toFixed(2).replace(".",",")}
+function fmtPreco(p){var n=Number(p);if(!Number.isFinite(n)||n<=0)return"Grátis (teste)";return"R$ "+n.toFixed(2).replace(".",",")}
 function comprar(jogo,preco,nome){
   var q="jogo="+encodeURIComponent(jogo)+"&preco="+encodeURIComponent(preco||0)+"&nome="+encodeURIComponent(nome||"");
   location.href="/pagar.html?"+q;
 }
+function card(x){
+  var acao;
+  if(x.download_url){acao='<a class="btn" href="'+esc(safe(x.download_url))+'">Baixar</a>'}
+  else if(x.protegido){var label=Number(x.preco)>0?"Comprar Pix":"Obter grátis (teste)";
+    acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-nome="'+esc(x.name)+'">'+esc(label)+'</button>'}
+  else{acao="<small>Em breve</small>"}
+  var badge=x.protegido?fmtPreco(x.preco):(x.download_url?"GRÁTIS":"EM BREVE");
+  var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"");
+  var tags=(x.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
+  return '<article class="card"><div class="ph"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"><span class="badge">'+esc(badge)+'</span></div><div class="b"><h3>'+esc(x.name)+'</h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
+}
+function seo(g){
+  try{
+    var list=g.map(function(x,i){
+      var item={"@type":"VideoGame","name":x.name,"description":x.description,"genre":x.tags||[],"gamePlatform":"PC","author":{"@type":"Person","name":"TS_KKJJ"},"inLanguage":"pt-BR"};
+      try{item.image=new URL(safe(x.capsule_url),location.href).href}catch(e){}
+      if(x.version)item.softwareVersion=String(x.version);
+      if(x.protegido||x.download_url){item.offers={"@type":"Offer","price":x.protegido?(Number(x.preco)||0):0,"priceCurrency":"BRL","availability":"https://schema.org/InStock","url":location.origin+"/"}}
+      return{"@type":"ListItem","position":i+1,"item":item};
+    });
+    var s=document.createElement("script");s.type="application/ld+json";
+    s.textContent=JSON.stringify({"@context":"https://schema.org","@type":"ItemList","name":"Jogos da TSS The Swift Store","itemListElement":list});
+    document.head.appendChild(s);
+  }catch(e){}
+}
 fetch("catalog.json",{cache:"no-cache"}).then(function(r){return r.json()}).then(function(d){
   var hub=d.hub||{},b=document.getElementById("hubbtn");
-  if(hub.download_url&&safe(hub.download_url)){b.href=safe(hub.download_url);b.classList.remove("off");b.textContent="Baixar o TSS Hub v"+esc(hub.version)}
+  if(hub.download_url&&safe(hub.download_url)){b.href=safe(hub.download_url);b.classList.remove("off");b.textContent="Baixar o TSS Hub v"+hub.version}
   var g=d.games||[],grid=document.getElementById("grid"),msg=document.getElementById("msg");
-  msg.style.display=g.length?"none":"block";
-  if(!g.length)msg.textContent="Nenhum jogo publicado ainda.";
-  grid.innerHTML=g.map(function(x){
-    var acao="";
-    if(x.download_url)acao='<a class="btn" href="'+esc(safe(x.download_url))+'">Baixar</a>';
-    else if(x.protegido){var label=Number(x.preco)>0?"Comprar Pix":"Obter gratis (teste)";
-      acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-nome="'+esc(x.name)+'">'+esc(label)+'</button>'}
-    else acao="<small>Em breve</small>";
-    var precoTxt=x.protegido?'<span class="preco">'+esc(fmtPreco(x.preco))+'</span>':"";
-    var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"")+(precoTxt?" · "+precoTxt:"");
-    var tags=(x.tags||[]).map(function(t){return "<span>"+esc(t)+"</span>"}).join("");
-    return '<article class="card"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+'" loading="lazy"><div class="b"><h3>'+esc(x.name)+'</h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
-  }).join("");
+  if(!g.length){grid.innerHTML="";msg.style.display="block";msg.textContent="Nenhum jogo publicado ainda.";return}
+  grid.innerHTML=g.map(card).join("");
   var buttons=grid.querySelectorAll("button[data-jogo]");
   for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn.getAttribute("data-nome")||"")}})(buttons[i])}
-}).catch(function(){document.getElementById("msg").textContent="Nao consegui carregar o catalogo agora."});
-</script></body></html>
+  seo(g);
+}).catch(function(){
+  document.getElementById("grid").innerHTML="";
+  var m=document.getElementById("msg");m.style.display="block";m.textContent="Não consegui carregar o catálogo agora."
+});
+</script>
+</body>
+</html>
