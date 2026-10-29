@@ -1,6 +1,7 @@
 // Comprador informa numero do pedido + CPF e recebe a chave.
 // E-mail continua aceito como fallback (compras antigas / site).
 const L = require("./_cofre");
+const A = require("./_auth");
 
 const tentativas = new Map();
 function limitar(ip) {
@@ -63,10 +64,24 @@ module.exports = async (req, res) => {
       }, "sentinela: vincula CPF ao pedido");
     }
 
+    // Se o comprador esta logado, guarda a compra na conta dele.
+    let salvaNaConta = false;
+    try {
+      const sess = A.sessao(req);
+      if (sess && !rec.conta) {
+        salvaNaConta = await L.mutar((d) => {
+          const r = d.pedidos[pid];
+          if (r && !r.conta && d.contas[sess.uid]) { r.conta = sess.uid; return { salvar: true, resultado: true }; }
+          return { salvar: false, resultado: false };
+        }, "conta: vincula compra");
+      } else if (sess && rec.conta === sess.uid) salvaNaConta = true;
+    } catch (e) { /* login nao configurado: segue sem vincular */ }
+
     return res.status(200).json({
       ok: true,
       chave: L.chaveDoPedido(pid, rec.jogo),
       jogo: rec.jogo,
+      salva_na_conta: salvaNaConta,
     });
   } catch (e) { return L.responder(res, e); }
 };

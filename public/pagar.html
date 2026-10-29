@@ -3,6 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Pagar com Pix · TSS</title>
 <meta name="robots" content="noindex">
+<link rel="stylesheet" href="/legal.css">
 <style>
 :root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;--ok:#3ecf8e;--err:#ff5c6c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:400 1rem/1.5 system-ui,Segoe UI,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
@@ -20,16 +21,33 @@ button:hover{background:var(--gold2)}button:disabled{opacity:.5}
 button.ghost{background:transparent;color:var(--mute);border:1px solid var(--line)}
 .status{margin-top:14px;min-height:24px}.ok{color:var(--ok)}.err{color:var(--err)}
 .email{width:100%;background:#0f0e08;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;margin:8px 0}
+.chk{display:flex;gap:.6rem;align-items:flex-start;text-align:left;margin:10px 0;font-size:.88rem;color:var(--mute);cursor:pointer}
+.chk input{width:1.1rem;height:1.1rem;margin-top:.2rem;accent-color:#e6cf4a;flex:none}
+.lab{display:block;text-align:left;color:var(--mute);font-size:.85rem;margin-top:8px}
+.login a{display:block;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px;text-decoration:none;color:var(--text);font-weight:700;background:#0f0e08}
+.login a:hover{border-color:var(--gold2)}
 </style></head><body>
 <div class="card" id="box">
   <h1 id="titulo">Pagamento Pix</h1>
   <p class="mut" id="sub">Escaneie o QR Code ou copie o codigo</p>
   <div class="preco" id="preco"></div>
 
-  <div id="form">
-    <label class="mut" style="display:block;text-align:left">Seu e-mail (opcional)</label>
-    <input class="email" id="email" type="email" placeholder="seu@email.com">
-    <button id="gerar">Gerar Pix</button>
+  <div id="entrar" hidden>
+    <p class="mut">Para comprar, entre na sua conta. Assim a chave e a compra ficam salvas nela.</p>
+    <div class="login" id="provs"></div>
+  </div>
+
+  <div id="form" hidden>
+    <p class="mut" id="quem"></p>
+    <label class="lab" for="nome">Nome completo</label>
+    <input class="email" id="nome" autocomplete="name" placeholder="Como está no seu CPF">
+    <label class="lab" for="cpf">CPF <span id="cpfs"></span></label>
+    <input class="email" id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+    <label class="lab" for="email">E-mail</label>
+    <input class="email" id="email" type="email" autocomplete="email" placeholder="seu@email.com">
+    <p class="mut" style="font-size:.8rem;text-align:left">Usamos esses dados para emitir a compra, evitar fraude e suporte. Ficam cifrados na sua conta (<a href="/privacidade" target="_blank" rel="noopener">Privacidade</a>).</p>
+    <label class="chk"><input type="checkbox" id="aceite"><span>Li e aceito os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>, a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a> e a <a href="/reembolso" target="_blank" rel="noopener">Política de Reembolso</a> (7 dias para desistir). Tenho 18 anos ou mais, ou autorização do meu responsável.</span></label>
+    <button id="gerar" disabled>Gerar Pix</button>
   </div>
 
   <div id="pix" hidden>
@@ -46,20 +64,43 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
     <p class="mut">Sua chave de ativacao:</p>
     <div class="chave" id="chave"></div>
     <button id="copiarChave">Copiar chave</button>
-    <p class="mut" style="margin-top:14px;text-align:left">1. Baixe o <a href="/" id="hubLink">TSS Hub</a><br>2. Instale o jogo no Hub<br>3. Cole a chave quando pedir</p>
+    <p class="mut" style="margin-top:14px;text-align:left">Sua chave também ficou salva em <a href="/conta">Minha conta</a>.<br><br>1. Baixe o <a href="/" id="hubLink">TSS Hub</a><br>2. Instale o jogo no Hub<br>3. Cole a chave quando pedir</p>
   </div>
 
   <div class="status" id="st"></div>
-  <p class="mut" style="margin-top:18px"><a href="/">Voltar a loja</a></p>
+  <p class="mut" style="margin-top:18px"><a href="/">Voltar a loja</a> · <a href="/conta">Minha conta</a></p>
 </div>
 <script>
 function qs(k){var m=location.search.match(new RegExp("[?&]"+k+"=([^&]*)"));return m?decodeURIComponent(m[1]):""}
-var jogo=qs("jogo")||"backrooms";
-var preco=Number(qs("preco"));if(!Number.isFinite(preco)||preco<0)preco=0;
-var paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false,confirmando=false;
+var jogo=qs("jogo");
+var preco=0,paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false,confirmando=false,salvo=false;
 
-document.getElementById("titulo").textContent=qs("nome")||"Pagamento Pix";
-document.getElementById("preco").textContent=preco<=0?"R$ 0,01 (teste)":"R$ "+preco.toFixed(2).replace(".",",");
+function setPreco(p){document.getElementById("preco").textContent=p<=0?"R$ 0,01 (teste)":"R$ "+p.toFixed(2).replace(".",",")}
+function el(id){return document.getElementById(id)}
+fetch("/catalog.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(c){
+  var g=(c.games||[]).find(function(x){return x.id===jogo});
+  if(!g||!g.protegido){el("titulo").textContent="Jogo não encontrado";el("sub").textContent="";el("entrar").hidden=true;el("form").hidden=true;say("Esse jogo não está à venda.","err");return}
+  el("titulo").textContent=g.name;preco=Number(g.preco)||0;setPreco(preco);iniciarFluxo();
+}).catch(function(){say("Não consegui carregar o jogo.","err")});
+
+function iniciarFluxo(){
+  fetch("/api/conta",{credentials:"same-origin"}).then(function(r){return r.json().then(function(d){d._s=r.status;return d})}).then(function(d){
+    if(d._s===401||!d.ok){
+      el("entrar").hidden=false;el("form").hidden=true;
+      fetch("/api/auth?acao=provedores").then(function(r){return r.json()}).then(function(p){
+        var box=el("provs");box.textContent="";var l=(p&&p.provedores)||[];
+        if(!l.length){el("entrar").hidden=true;el("form").hidden=false;el("quem").textContent="Compra como visitante.";return}
+        l.forEach(function(x){var a=document.createElement("a");a.href="/auth/entrar/"+x.id+"?volta="+encodeURIComponent(location.pathname+location.search);a.textContent="Entrar com "+x.nome;box.appendChild(a)});
+      });return;
+    }
+    el("entrar").hidden=true;el("form").hidden=false;
+    el("quem").textContent="Comprando como "+(d.conta.nome||"jogador")+" ("+d.conta.provedor+")";
+    el("nome").value=d.perfil.nome_completo||d.conta.nome||"";el("email").value=d.perfil.email||"";
+    if(d.perfil.cpf_mascarado){salvo=true;el("cpfs").textContent="(salvo: "+d.perfil.cpf_mascarado+" — deixe vazio para usar)"}
+  });
+}
+el("aceite").onchange=function(){el("gerar").disabled=!el("aceite").checked};
+el("cpf").oninput=function(){var v=this.value.replace(/\D/g,"").slice(0,11);this.value=v.replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2")};
 
 function say(t,cls){var s=document.getElementById("st");s.className="status "+(cls||"");s.textContent=t||""}
 function fmt(ms){var s=Math.max(0,Math.ceil(ms/1000));var m=Math.floor(s/60);s=s%60;return (m<10?"0":"")+m+":"+(s<10?"0":"")+s}
@@ -131,9 +172,10 @@ document.getElementById("gerar").onclick=function(){
   fetch("/api/criar-pagamento",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({jogo:jogo,preco:preco,email:document.getElementById("email").value.trim()})
+    credentials:"same-origin",
+    body:JSON.stringify({jogo:jogo,nome:el("nome").value.trim(),cpf:el("cpf").value,email:el("email").value.trim(),aceite_termos:window.TSS_TERMOS_VERSAO||"2026-10-29",maior_18:el("aceite").checked})
   }).then(function(r){return r.json()}).then(function(d){
-    if(!d.ok)throw new Error(d.erro||"Falha ao criar Pix");
+    if(!d.ok){if(d.codigo==="login"){location.reload();return}throw new Error(d.erro||"Falha ao criar Pix")}
     paymentId=d.payment_id;
     document.getElementById("form").hidden=true;
     document.getElementById("pix").hidden=false;
@@ -165,4 +207,4 @@ function fallbackCopy(t){
   document.body.removeChild(a);
 }
 document.getElementById("cancelar").onclick=function(){location.href="/"};
-</script></body></html>
+</script><script src="/legal.js" defer></script></body></html>

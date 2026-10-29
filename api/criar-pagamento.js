@@ -2,6 +2,8 @@
 // Valido por 30 minutos.
 const L = require("./_cofre");
 const crypto = require("crypto");
+const A = require("./_auth");
+const R = require("./_release");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -16,16 +18,49 @@ module.exports = async (req, res) => {
     const token = process.env.MP_ACCESS_TOKEN;
     if (!token) throw new L.Falha(500, "Mercado Pago ainda nao configurado no servidor.", "config");
 
+    // Com login configurado a compra exige conta; sem login configurado (transicao) segue como visitante.
+    const loginAtivo = Object.keys(A.PROVEDORES).some(A.configurado);
+    const sess = loginAtivo ? A.exigirSessao(req) : null;
     const b = L.corpo(req);
-    const jogo = String(b.jogo || "backrooms").toLowerCase();
+    const jogo = String(b.jogo || "").toLowerCase();
     if (!/^[a-z0-9_-]{1,40}$/.test(jogo)) throw new L.Falha(400, "Jogo invalido.", "pedido");
 
-    let email = String(b.email || "").trim();
-    if (!email.includes("@")) email = "comprador+" + Date.now() + "@tss.store";
+    // Preco e nome vem do catalogo no servidor (nunca do navegador).
+    const cat = await R.lerCatalogo();
+    const g = cat && (cat.games || []).find((x) => x.id === jogo);
+    if (!g) throw new L.Falha(404, "Jogo nao encontrado.", "sem_jogo");
+    if (!g.protegido) throw new L.Falha(400, "Este jogo e gratuito, nao precisa de pagamento.", "gratis");
+    let preco = Number(g.preco);
+    if (!Number.isFinite(preco) || preco <= 0) preco = 0.01;
 
-    let preco = Number(b.preco);
-    if (!Number.isFinite(preco) || preco < 0) preco = 0.01;
-    if (preco === 0) preco = 0.01;
+    // Aceite dos termos (prova de consentimento) + maioridade
+    if (String(b.aceite_termos) !== L.TERMOS_VERSAO || b.maior_18 !== true) {
+      throw new L.Falha(400, "Aceite os Termos de Uso, a Politica de Privacidade e a Politica de Reembolso para continuar.", "aceite");
+    }
+
+    // Dados do comprador: usa o que veio no formulario; se vier vazio, usa o que ja esta salvo na conta.
+    let conta = null, salvo = {};
+    if (sess) {
+      const { data: dados } = await L.lerChaves();
+      conta = dados.contas[sess.uid];
+      if (!conta) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
+      salvo = conta.pii ? L.decifrar(conta.pii) : {};
+    }
+    const nome = (String(b.nome || "").trim().replace(/\s+/g, " ") || salvo.nome || "");
+    const cpf = L.normalizarCpf(b.cpf) || salvo.cpf || "";
+    const email = (String(b.email || "").trim().toLowerCase() || salvo.email || (conta && conta.email_login) || "");
+    if (nome.length < 5 || nome.length > 80 || !nome.includes(" ")) throw new L.Falha(400, "Informe seu nome completo.", "dados");
+    if (!L.cpfValido(cpf)) throw new L.Falha(400, "CPF invalido.", "dados");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new L.Falha(400, "E-mail invalido.", "dados");
+
+    const ip = L.ipDe(req), ua = String(req.headers["user-agent"] || "").slice(0, 160);
+    if (sess) await L.mutar((data) => {
+      const c = data.contas[sess.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
+      c.pii = L.cifrar({ nome, cpf, email, atualizado: L.agora() });
+      c.aceites = c.aceites || [];
+      if (!c.aceites.some((a) => a.versao === L.TERMOS_VERSAO)) c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora(), ev: L.cifrar({ ip, ua, onde: "checkout" }) });
+      return { salvar: true, resultado: true };
+    }, "conta: dados do comprador e aceite");
 
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
     const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -43,11 +78,11 @@ module.exports = async (req, res) => {
       // Qualidade da integracao MP
       statement_descriptor: "TSS STORE",
       binary_mode: true,
-      metadata: { jogo, email, origem: "tss-store-pix", site: base },
+      metadata: { jogo, email, origem: "tss-store-pix", site: base, conta: sess ? sess.uid : "", aceite: L.TERMOS_VERSAO },
       additional_info: {
         items: [{
           id: jogo,
-          title: "Backrooms: Cade a Porta? (TSS)",
+          title: String(g.name || jogo).slice(0, 120),
           description: "Chave de ativacao digital",
           category_id: "digital_games",
           quantity: 1,
@@ -56,7 +91,9 @@ module.exports = async (req, res) => {
       },
       payer: {
         email,
-        first_name: String(b.nome || "Comprador").slice(0, 40),
+        first_name: nome.split(" ")[0].slice(0, 40),
+        last_name: nome.split(" ").slice(1).join(" ").slice(0, 60),
+        identification: { type: "CPF", number: cpf },
       },
     };
 

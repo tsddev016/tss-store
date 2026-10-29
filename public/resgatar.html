@@ -37,7 +37,7 @@ a{color:var(--ac)}
 </ol>
 <p class="mut">Se o Windows avisar “app desconhecido”: Mais informacoes → Executar assim mesmo.</p>
 </div>
-<p class="mut"><a href="/">Voltar a loja</a></p>
+<p class="mut"><a href="/">Voltar a loja</a> · <a href="/conta">Minha conta</a> · <a href="/termos">Termos</a> · <a href="/privacidade">Privacidade</a> · <a href="/reembolso">Reembolso</a></p>
 </div>
 <script>
 const $=i=>document.getElementById(i);
@@ -53,9 +53,9 @@ $("b").onclick=async()=>{
     })});
     const d=await r.json();
     if(!d.ok){m.className="msg err";m.textContent=d.erro||"Nao foi possivel conferir.";$("r").hidden=true}
-    else{m.className="msg ok";m.textContent="Compra confirmada.";$("k").textContent=d.chave;$("r").hidden=false}
+    else{m.className="msg ok";m.textContent=d.salva_na_conta?"Compra confirmada e salva na sua conta.":"Compra confirmada. Entre em Minha conta para guardá-la lá.";$("k").textContent=d.chave;$("r").hidden=false}
   }catch(x){m.className="msg err";m.textContent="Sem conexao. Tente de novo."}
   $("b").disabled=false;
 };
 $("c").onclick=()=>{navigator.clipboard.writeText($("k").textContent);$("c").textContent="Copiada!"};
-</script></body></html>
+</script><script src="/legal.js" defer></script></body></html>

@@ -32,6 +32,7 @@ module.exports = async (req, res) => {
       const pedidos = Object.entries(data.pedidos).map(([p, r]) => ({
         pedido: p, jogo: r.jogo, criado: r.criado, origem: r.origem, chave_id: String(r.h || "").slice(0, 12),
         revogada: !!(data.keys[r.h] && data.keys[r.h].revogada), tem_email: !!r.email,
+        reembolso: (data.reembolsos[p] || {}).estado || "", motivo: (data.reembolsos[p] || {}).motivo || "", conta: !!r.conta, mp: !!r.mp_payment,
       })).sort((a, c) => String(c.criado).localeCompare(String(a.criado)));
       return res.status(200).json({ ok: true, chaves, pedidos, log: data.log.slice().reverse() });
     }
@@ -66,6 +67,34 @@ module.exports = async (req, res) => {
         return { salvar: true, resultado: true };
       }, `sentinela: ${acao}`);
       return res.status(200).json({ ok: r });
+    }
+
+    if (acao === "reembolsar") {
+      const pid = L.idPedido(b.pedido);
+      const { data } = await L.lerChaves();
+      const rec = data.pedidos[pid];
+      if (!rec) throw new L.Falha(404, "Pedido nao encontrado.", "sem_pedido");
+      let aviso = "Chave revogada. Este pedido nao veio do Pix do site: devolva o dinheiro pela Game Market ou manualmente.";
+      if (rec.mp_payment) {
+        const tk = process.env.MP_ACCESS_TOKEN;
+        if (!tk) throw new L.Falha(500, "Mercado Pago nao configurado.", "config");
+        const r = await fetch("https://api.mercadopago.com/v1/payments/" + encodeURIComponent(rec.mp_payment) + "/refunds", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + tk, "Content-Type": "application/json", "X-Idempotency-Key": "refund-" + pid },
+          body: "{}",
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok && !(j && /already/i.test(JSON.stringify(j)))) {
+          throw new L.Falha(502, "Mercado Pago recusou o reembolso: " + String((j && (j.message || j.error)) || r.status), "mp");
+        }
+        aviso = "Pix devolvido pelo Mercado Pago e chave revogada.";
+      }
+      await L.mutar((d) => {
+        const k = d.keys[rec.h]; if (k) k.revogada = true;
+        d.reembolsos[pid] = Object.assign({ pedido: pid, em: L.agora() }, d.reembolsos[pid] || {}, { estado: "reembolsado", feito_em: L.agora() });
+        return { salvar: true, resultado: true };
+      }, "sentinela: reembolso");
+      return res.status(200).json({ ok: true, aviso });
     }
 
     if (acao === "pedido_manual") {

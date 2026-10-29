@@ -40,13 +40,21 @@ module.exports = async (req, res) => {
     const email = (pay.payer && pay.payer.email) || b.email || "";
     const meta = pay.metadata || {};
     const jogo = String(meta.jogo || process.env.JOGO_PADRAO || "backrooms").toLowerCase();
+    const idp = pay.payer && pay.payer.identification;
+    const nomePag = pay.payer ? [pay.payer.first_name, pay.payer.last_name].filter(Boolean).join(" ") : "";
 
     const out = await L.mutar((data) => {
       const x = L.registrarPedido(data, {
         pedido,
         email,
+        cpf: idp && idp.number ? idp.number : "",
+        nome: nomePag,
         jogo,
         origem: "mercadopago",
+        conta: meta.conta || "",
+        mp_payment: id,
+        preco: pay.transaction_amount,
+        aceite: meta.aceite || "",
       });
       data.log.push({
         t: L.agora(),

@@ -5,6 +5,7 @@ const crypto = require("crypto");
 const GH = process.env.GH_API || "https://api.github.com";
 const COFRE = process.env.COFRE_REPO || "tsddev016/tss-cofre";
 const MAX_PADRAO = 2;
+const TERMOS_VERSAO = "2026-10-29"; // mude junto com public/legal.js quando alterar os termos
 const ALFA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 simbolos, sem 0/O/1/I
 
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
@@ -45,11 +46,12 @@ async function exigirAdmin(senha) {
 async function lerChaves() {
   if (!process.env.GH_TOKEN) throw new Falha(500, "Servidor ainda sem GH_TOKEN configurado.", "config");
   const r = await fetch(`${GH}/repos/${COFRE}/contents/chaves.json`, { headers: hdr(), cache: "no-store" });
-  if (r.status === 404) return { data: { keys: {}, pedidos: {}, log: [] }, sha: null };
+  if (r.status === 404) return { data: { keys: {}, pedidos: {}, log: [], contas: {}, reembolsos: {} }, sha: null };
   if (!r.ok) throw new Falha(503, "Cofre da TSS indisponivel no momento. Tente de novo.", "cofre");
   const j = await r.json();
   const data = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
   data.keys = data.keys || {}; data.pedidos = data.pedidos || {}; data.log = data.log || [];
+  data.contas = data.contas || {}; data.reembolsos = data.reembolsos || {};
   return { data, sha: j.sha };
 }
 
@@ -76,6 +78,29 @@ async function mutar(fn, msg) {
   }
   throw new Falha(503, "Muitos acessos ao mesmo tempo. Tente de novo em alguns segundos.", "ocupado");
 }
+
+// Dados pessoais (nome, CPF, e-mail) ficam cifrados (AES-256-GCM) com DADOS_KEY antes de ir para o cofre.
+function chaveDados() {
+  const s = process.env.DADOS_KEY;
+  if (!s) throw new Falha(500, "Servidor ainda sem DADOS_KEY configurada.", "config");
+  return crypto.createHash("sha256").update("tss-dados:" + s).digest();
+}
+function cifrar(obj) {
+  const iv = crypto.randomBytes(12);
+  const c = crypto.createCipheriv("aes-256-gcm", chaveDados(), iv);
+  const enc = Buffer.concat([c.update(JSON.stringify(obj), "utf8"), c.final()]);
+  return "v1." + iv.toString("base64") + "." + c.getAuthTag().toString("base64") + "." + enc.toString("base64");
+}
+function decifrar(txt) {
+  const [v, iv, tag, enc] = String(txt || "").split(".");
+  if (v !== "v1" || !enc) return {};
+  try {
+    const d = crypto.createDecipheriv("aes-256-gcm", chaveDados(), Buffer.from(iv, "base64"));
+    d.setAuthTag(Buffer.from(tag, "base64"));
+    return JSON.parse(Buffer.concat([d.update(Buffer.from(enc, "base64")), d.final()]).toString("utf8"));
+  } catch (e) { return {}; }
+}
+const ipDe = (req) => String(((req.headers && req.headers["x-forwarded-for"]) || "").split(",")[0] || "").trim().slice(0, 60);
 
 const formatar = (k) => k.match(/.{1,5}/g).join("-");
 function chaveAleatoria() {
@@ -113,7 +138,7 @@ function cpfValido(c) {
 }
 
 // Cria (ou devolve) a chave de um pedido. Idempotente.
-function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem }) {
+function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, mp_payment, preco, aceite }) {
   const pid = idPedido(pedido);
   if (!pid) throw new Falha(400, "Pedido sem identificacao.", "pedido");
   const chave = chaveDoPedido(pid, jogo);
@@ -129,7 +154,15 @@ function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem }) {
       criado: agora(),
       origem: origem || "webhook",
     };
+    if (conta) data.pedidos[pid].conta = conta;
+    if (mp_payment) data.pedidos[pid].mp_payment = String(mp_payment);
+    if (preco) data.pedidos[pid].preco = Number(preco);
+    if (aceite) data.pedidos[pid].aceite = aceite;
   } else {
+    if (conta && !ja.conta) ja.conta = conta;
+    if (mp_payment && !ja.mp_payment) ja.mp_payment = String(mp_payment);
+    if (preco && !ja.preco) ja.preco = Number(preco);
+    if (aceite && !ja.aceite) ja.aceite = aceite;
     // completa dados se chegar depois
     if (email && !ja.email) ja.email = hashEmail(email);
     if (cpf && !ja.cpf) ja.cpf = hashCpf(cpf);
@@ -147,5 +180,5 @@ function responder(res, e) {
 }
 
 module.exports = { Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
-  chaveAleatoria, chaveDoPedido, idPedido, hashEmail, hashCpf, normalizarCpf, cpfValido, soDigitos,
+  chaveAleatoria, chaveDoPedido, idPedido, cifrar, decifrar, ipDe, TERMOS_VERSAO, hashEmail, hashCpf, normalizarCpf, cpfValido, soDigitos,
   registrarPedido, responder, MAX_PADRAO };

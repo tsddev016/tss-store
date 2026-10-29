@@ -48,6 +48,7 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <label>Descricao</label><textarea id="edes" rows="3"></textarea>
 <label>Tags (separadas por virgula)</label><input id="etag" placeholder="TERROR, ONLINE, DEMO">
 <label>Changelog</label><input id="ech">
+<label>Arquivo que abre (launch)</label><input id="el" placeholder="Pasta/sistema/executor.py">
 <label>Capa / banner (jpg ou png)</label><input id="eimg" type="file" accept="image/jpeg,image/png,image/webp">
 <img class="prev" id="eprev" alt="" hidden>
 <p><button id="es">Salvar alteracoes</button></p>
@@ -61,6 +62,9 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <div id="novo" hidden class="row"><div><label>ID (minusculas, sem espaco)</label><input id="nid"></div><div><label>Nome</label><input id="nn"></div><div><label>Desenvolvedor</label><input id="nd"></div><div><label>Arquivo que abre (launch)</label><input id="nl" placeholder="Pasta/sistema/executor.py"></div></div>
 <label>O que mudou (changelog)</label><input id="pc"><label>Arquivo .zip do jogo</label><input id="pf" type="file" accept=".zip">
 <p><button id="pb">Publicar</button></p><div class="msg" id="pm"></div></div>
+<div class="card"><h2>Recuperar jogo publicado que nao apareceu</h2>
+<p class="mut">Procura no cofre versoes que estao nas releases mas faltam no catalogo (ou estao mais novas) e adiciona com um clique.</p>
+<p><button id="rb">Procurar no cofre</button></p><div class="msg" id="rm"></div><div class="sc"><table id="rt"></table></div></div>
 <div class="card"><h2>Link do instalador do Hub</h2><p class="mut">O link do TSS Hub no Mediafire. Aparece na pagina de resgate.</p>
 <input id="hu" placeholder="https://www.mediafire.com/…"><p><button id="hb">Salvar link</button></p><div class="msg" id="hm"></div></div></section>
 
@@ -82,14 +86,15 @@ async function carregar(){
  const d=await api("listar");
  tabela($("tc"),["ID","Jogo","PCs","Estado","Pedido/origem","Criada",""],d.chaves.map(k=>[k.id,k.jogo,k.usos+"/"+k.max,k.revogada?el("span",{className:"err"},"revogada"):(k.ativada?el("span",{className:"ok"},"em uso"):"nova"),(k.pedido||k.nota||"")+" ("+k.origem+")",dt(k.criada),
   el("span",{},k.revogada?btn("Reativar",()=>api("reativar",{id:k.id})):btn("Revogar",()=>{if(confirm("Revogar esta chave?"))return api("revogar",{id:k.id})}),btn("Liberar PCs",()=>api("liberar",{id:k.id})))]));
- tabela($("tp"),["Pedido","Jogo","Origem","Criado","Estado"],d.pedidos.map(p=>[p.pedido,p.jogo,p.origem,dt(p.criado),p.revogada?el("span",{className:"err"},"revogado"):el("span",{className:"ok"},"ativo")]));
+ tabela($("tp"),["Pedido","Jogo","Origem","Criado","Estado","Reembolso"],d.pedidos.map(p=>[p.pedido,p.jogo,p.origem,dt(p.criado),p.revogada?el("span",{className:"err"},"revogado"):el("span",{className:"ok"},"ativo"),
+  el("span",{},p.reembolso==="reembolsado"?el("span",{className:"err"},"reembolsado"):el("span",{},(p.reembolso==="pedido"?"PEDIDO: "+(p.motivo||"sem motivo")+" ":""),btn(p.mp?"Reembolsar (Pix + revogar)":"Revogar (devolver a mao)",async()=>{if(!confirm("Reembolsar o pedido "+p.pedido+"? A chave sera revogada."))return;const r=await api("reembolsar",{pedido:p.pedido});alert(r.aviso)})))]));
  tabela($("tl"),["Quando","Resultado","Pedido","Evento/status","Campos recebidos"],d.log.map(l=>[dt(l.t),el("span",{className:l.ok?"ok":"err"},l.msg),l.pedido||"—",(l.evento||"")+" "+(l.status||""),(l.campos||[]).join(", ")]));
 }
 function preencherEdit(){
  const id=$("ej").value;const g=(CAT.games||[]).find(x=>x.id===id);if(!g)return;
  $("en").value=g.name||"";$("ed").value=g.developer||"";$("ep").value=Number(g.preco)||0;
  $("eprot").checked=!!g.protegido;$("edes").value=g.description||"";
- $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";
+ $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";$("el").value=g.launch||"";
  if(g.capsule_url){$("eprev").src="/"+g.capsule_url.replace(/^\//,"")+"?t="+Date.now();$("eprev").hidden=false}
  else{$("eprev").hidden=true}
  $("eprot-hint").textContent=$("eprot").checked
@@ -135,6 +140,28 @@ const b64=s=>btoa(unescape(encodeURIComponent(s)));
 const unb64=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,""))));
 function b64bin(buf){const bytes=new Uint8Array(buf);let bin="";for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin)}
 async function lerCat(){const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`);if(!r.ok)throw new Error("Nao consegui ler o catalogo ("+r.status+"). Confira o token.");const j=await r.json();return{cat:JSON.parse(unb64(j.content)),sha:j.sha}}
+const dorme=ms=>new Promise(r=>setTimeout(r,ms));
+/* Le o catalogo MAIS NOVO, aplica a mudanca e grava; se alguem gravou no meio (409/422), le de novo e repete. */
+async function salvarCat(fn,msg){
+ let ultimo=0;
+ for(let t=0;t<6;t++){
+  const{cat,sha}=await lerCat();cat.games=cat.games||[];
+  await fn(cat);
+  cat.updated=new Date().toISOString().slice(0,10);
+  const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:b64(JSON.stringify(cat,null,2)+"\n"),sha})});
+  if(r.ok)return cat;
+  ultimo=r.status;
+  if(r.status===409||r.status===422){await dorme(400*(t+1));continue}
+  throw new Error("Nao consegui gravar o catalogo ("+r.status+"). Confira se o token tem Contents: read/write no tss-store.");
+ }
+ throw new Error("O catalogo mudou varias vezes ao mesmo tempo ("+ultimo+"). Tente de novo.");
+}
+async function confirmarNoCatalogo(id,ver){
+ await dorme(1500);
+ const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`,{headers:{Accept:"application/vnd.github.raw+json"}});
+ if(!r.ok)return false;const c=await r.json();
+ return (c.games||[]).some(g=>g.id===id&&String(g.version)===String(ver));
+}
 async function gravarCat(cat,sha,msg){cat.updated=new Date().toISOString().slice(0,10);const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:b64(JSON.stringify(cat,null,2)+"\n"),sha})});if(!r.ok)throw new Error("Nao consegui gravar o catalogo ("+r.status+").")}
 
 /* ---- editar jogo ---- */
@@ -144,19 +171,8 @@ $("es").onclick=async()=>{
   localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub.");
   const id=$("ej").value;if(!id)throw new Error("Escolha um jogo.");
   say("em","Salvando…");
-  const{cat,sha}=await lerCat();const g=(cat.games||[]).find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");
-  g.name=$("en").value.trim()||g.name;
-  g.developer=$("ed").value.trim();
-  g.preco=Math.max(0,Number($("ep").value)||0);
-  g.protegido=!!$("eprot").checked;
-  g.description=$("edes").value.trim();
-  g.tags=$("etag").value.split(",").map(t=>t.trim()).filter(Boolean);
-  g.changelog=$("ech").value.trim()||g.changelog;
-  if(g.protegido){g.download_url=""}
-  else if(!g.download_url||g.download_url.includes("mediafire")){
-   g.download_url="https://tss-store.vercel.app/api/baixar-gratis?jogo="+encodeURIComponent(id);
-  }
   const img=$("eimg").files[0];
+  let capa="";
   if(img){
    if(img.size>2*1024*1024)throw new Error("Imagem muito grande (max 2 MB).");
    const ext=(img.name.split(".").pop()||"jpg").toLowerCase().replace(/jpeg/,"jpg");
@@ -170,15 +186,31 @@ $("es").onclick=async()=>{
     message:"Capa do jogo "+id,content:b64bin(ab),sha:fileSha||undefined
    })});
    if(!put.ok)throw new Error("Falha ao enviar capa ("+put.status+").");
-   g.capsule_url="capsules/"+id+"."+(ext==="png"||ext==="webp"?ext:"jpg");
+   capa="capsules/"+id+"."+(ext==="png"||ext==="webp"?ext:"jpg");
   }
-  await gravarCat(cat,sha,"Edita jogo "+id);
+  say("em","Gravando no catalogo…");
+  await salvarCat(cat=>{
+   const g=(cat.games||[]).find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");
+   g.name=$("en").value.trim()||g.name;
+   g.developer=$("ed").value.trim();
+   g.preco=Math.max(0,Number($("ep").value)||0);
+   g.protegido=!!$("eprot").checked;
+   g.description=$("edes").value.trim();
+   g.tags=$("etag").value.split(",").map(t=>t.trim()).filter(Boolean);
+   g.changelog=$("ech").value.trim()||g.changelog;
+   g.launch=$("el").value.trim()||g.launch||"";
+   if(g.protegido){g.download_url=""}
+   else if(!g.download_url||g.download_url.includes("mediafire")){
+    g.download_url="https://tss-store.vercel.app/api/baixar-gratis?jogo="+encodeURIComponent(id);
+   }
+   if(capa)g.capsule_url=capa;
+  },"Edita jogo "+id);
   say("em","Salvo. O site atualiza em ~30 segundos.","ok");
   await catalogo();
  }catch(e){say("em",e.message,"err")}b.disabled=false;
 };
 
-$("hb").onclick=async()=>{try{localStorage.setItem("tss_gh",tok());say("hm","Salvando…");const{cat,sha}=await lerCat();cat.hub=cat.hub||{};cat.hub.download_url=$("hu").value.trim();await gravarCat(cat,sha,"Link do instalador do Hub");say("hm","Salvo. O site atualiza em ~30 segundos.","ok")}catch(e){say("hm",e.message,"err")}};
+$("hb").onclick=async()=>{try{localStorage.setItem("tss_gh",tok());say("hm","Salvando…");const url=$("hu").value.trim();await salvarCat(cat=>{cat.hub=cat.hub||{};cat.hub.download_url=url},"Link do instalador do Hub");say("hm","Salvo. O site atualiza em ~30 segundos.","ok")}catch(e){say("hm",e.message,"err")}};
 const vNum=v=>String(v).split(".").map(n=>parseInt(n,10)||0);
 function maior(a,b){const x=vNum(a),y=vNum(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
 $("pb").onclick=async()=>{const b=$("pb");b.disabled=true;
@@ -186,23 +218,72 @@ $("pb").onclick=async()=>{const b=$("pb");b.disabled=true;
   localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub.");
   const f=$("pf").files[0];if(!f)throw new Error("Escolha o arquivo .zip.");
   const ver=$("pv").value.trim();if(!/^[0-9]+(\.[0-9]+)*$/.test(ver))throw new Error("Versao invalida (use numeros, ex.: 14 ou 1.2).");
-  say("pm","Lendo catalogo…");const{cat,sha}=await lerCat();cat.games=cat.games||[];
-  let g,id=$("pj").value;
-  if(id==="__novo"){id=$("nid").value.trim().toLowerCase();if(!/^[a-z0-9_-]{1,40}$/.test(id))throw new Error("ID do jogo invalido.");if(cat.games.some(x=>x.id===id))throw new Error("Ja existe jogo com esse ID.");
-   if(!$("nn").value.trim()||!$("nl").value.trim())throw new Error("Preencha nome e arquivo que abre.");
-   g={id,name:$("nn").value.trim(),version:"0",developer:$("nd").value.trim(),description:"",tags:[],capsule_url:"",download_url:"",sha256:"",size_mb:0,launch:$("nl").value.trim(),changelog:"",protegido:true,preco:0};cat.games.push(g)}
-  else{g=cat.games.find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");if(!maior(ver,g.version))throw new Error("A versao precisa ser maior que a atual (v"+g.version+"), senao o Hub dos compradores nao avisa.")}
+  say("pm","Lendo catalogo…");const{cat}=await lerCat();cat.games=cat.games||[];
+  let id=$("pj").value,novo=false;
+  if(id==="__novo"){novo=true;id=$("nid").value.trim().toLowerCase();if(!/^[a-z0-9_-]{1,40}$/.test(id))throw new Error("ID do jogo invalido.");if(cat.games.some(x=>x.id===id))throw new Error("Ja existe jogo com esse ID.");
+   if(!$("nn").value.trim()||!$("nl").value.trim())throw new Error("Preencha nome e arquivo que abre.")}
+  else{const g=cat.games.find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");if(!maior(ver,g.version))throw new Error("A versao precisa ser maior que a atual (v"+g.version+"), senao o Hub dos compradores nao avisa.")}
+  const nome=novo?$("nn").value.trim():cat.games.find(x=>x.id===id).name;
   say("pm","Calculando SHA-256…");const h=await crypto.subtle.digest("SHA-256",await f.arrayBuffer());const sh=[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("");
-  const tag=id+"-v"+ver;say("pm","Criando versao "+tag+" no cofre…");
-  const rr=await gh(`/repos/${OW}/${CO}/releases`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tag_name:tag,name:g.name+" v"+ver,draft:false,prerelease:false})});
-  if(rr.status===422)throw new Error("A versao "+tag+" ja existe no cofre. Use um numero maior.");if(!rr.ok)throw new Error("Nao consegui criar a versao ("+rr.status+"). Token precisa de acesso ao tss-cofre.");
-  const rel=await rr.json();
-  await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open("POST",`https://uploads.github.com/repos/${OW}/${CO}/releases/${rel.id}/assets?name=${encodeURIComponent(tag+".zip")}`);
-   x.setRequestHeader("Authorization","Bearer "+tok());x.setRequestHeader("Content-Type","application/zip");x.setRequestHeader("Accept","application/vnd.github+json");
-   x.upload.onprogress=e=>{if(e.lengthComputable)say("pm","Enviando… "+Math.round(e.loaded/e.total*100)+"%")};x.onload=()=>x.status<300?ok():no(new Error("Falha no envio ("+x.status+")"));x.onerror=()=>no(new Error("Falha de rede no envio."));x.send(f)});
-  g.version=ver;g.sha256=sh;g.size_mb=Math.max(1,Math.round(f.size/1048576));g.changelog=$("pc").value.trim()||g.changelog;
-  if(g.protegido!==false){g.protegido=true;g.download_url=""}
-  say("pm","Atualizando catalogo…");await gravarCat(cat,sha,"Publica "+tag);
-  say("pm","Publicado: "+g.name+" v"+ver+". Em ~30 segundos o Hub avisa a atualizacao.","ok");await catalogo();
+  const tag=id+"-v"+ver;
+  /* 1) release no cofre (se ja existir de uma tentativa anterior, reaproveita) */
+  say("pm","Criando versao "+tag+" no cofre…");
+  let rel=null;
+  const rr=await gh(`/repos/${OW}/${CO}/releases`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tag_name:tag,name:nome+" v"+ver,draft:false,prerelease:false})});
+  if(rr.status===422){const ex=await gh(`/repos/${OW}/${CO}/releases/tags/${encodeURIComponent(tag)}`);if(!ex.ok)throw new Error("A versao "+tag+" ja existe no cofre mas nao consegui le-la ("+ex.status+").");rel=await ex.json()}
+  else if(!rr.ok)throw new Error("Nao consegui criar a versao ("+rr.status+"). Token precisa de acesso ao tss-cofre.");
+  else rel=await rr.json();
+  /* 2) arquivo .zip (pula se a release ja tem o arquivo completo) */
+  const jaTem=(rel.assets||[]).find(a=>a.state==="uploaded"&&a.size===f.size);
+  if(!jaTem){
+   for(const a of (rel.assets||[]))await gh(`/repos/${OW}/${CO}/releases/assets/${a.id}`,{method:"DELETE"});
+   await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open("POST",`https://uploads.github.com/repos/${OW}/${CO}/releases/${rel.id}/assets?name=${encodeURIComponent(tag+".zip")}`);
+    x.setRequestHeader("Authorization","Bearer "+tok());x.setRequestHeader("Content-Type","application/zip");x.setRequestHeader("Accept","application/vnd.github+json");
+    x.upload.onprogress=e=>{if(e.lengthComputable)say("pm","Enviando… "+Math.round(e.loaded/e.total*100)+"%")};x.onload=()=>x.status<300?ok():no(new Error("Falha no envio ("+x.status+")"));x.onerror=()=>no(new Error("Falha de rede no envio."));x.send(f)});
+  }
+  /* 3) catalogo: relido na hora e regravado com retry (evita o erro de versao desatualizada) */
+  say("pm","Atualizando catalogo…");
+  await salvarCat(c=>{
+   let g=c.games.find(x=>x.id===id);
+   if(!g){g={id,name:$("nn").value.trim(),version:"0",developer:$("nd").value.trim(),description:"",tags:[],capsule_url:"icon.svg",download_url:"",sha256:"",size_mb:0,launch:$("nl").value.trim(),changelog:"",protegido:true,preco:0};c.games.push(g)}
+   else if(!novo&&!maior(ver,g.version)&&String(g.version)!==ver)throw new Error("Outra versao mais nova foi publicada enquanto voce enviava (v"+g.version+").");
+   g.version=ver;g.sha256=sh;g.size_mb=Math.max(1,Math.round(f.size/1048576));g.changelog=$("pc").value.trim()||g.changelog;
+   if(g.protegido!==false){g.protegido=true;g.download_url=""}
+  },"Publica "+tag);
+  /* 4) confere de verdade se entrou */
+  say("pm","Conferindo…");
+  if(!(await confirmarNoCatalogo(id,ver)))throw new Error("O arquivo subiu, mas o jogo nao apareceu no catalogo. Use 'Recuperar jogo publicado' abaixo.");
+  say("pm","Publicado: "+nome+" v"+ver+". Em ~30 segundos aparece na loja e no Hub."+(novo?" Defina preco e capa na aba Jogos.":""),"ok");await catalogo();
  }catch(e){say("pm",e.message,"err")}b.disabled=false};
+
+/* ---- recuperar releases do cofre que nao estao no catalogo ---- */
+$("rb").onclick=async()=>{
+ const b=$("rb");b.disabled=true;
+ try{
+  localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub (campo acima).");
+  say("rm","Procurando…");
+  const rl=await gh(`/repos/${OW}/${CO}/releases?per_page=100`);if(!rl.ok)throw new Error("Nao consegui ler o cofre ("+rl.status+").");
+  const rels=await rl.json();const{cat}=await lerCat();
+  const norm=x=>String(x).toLowerCase().replace(/_/g,"-");
+  const achados=[];
+  for(const r of rels){
+   if(r.draft)continue;const m=String(r.tag_name).match(/^(.+?)[-_]v?([0-9]+(?:\.[0-9]+)*)$/i);if(!m)continue;
+   const rid=norm(m[1]),ver=m[2];const a=(r.assets||[]).find(x=>/\.zip$/i.test(x.name)&&x.state==="uploaded");if(!a)continue;
+   const g=(cat.games||[]).find(x=>norm(x.id)===rid);
+   if(!g||maior(ver,g.version))achados.push({rid,ver,r,a,g});
+  }
+  tabela($("rt"),["Release","Jogo","Versao","Estado",""],achados.map(x=>[x.r.tag_name,x.rid,x.ver,x.g?"mais nova que o catalogo (v"+x.g.version+")":"fora do catalogo",
+   btn("Adicionar ao catalogo",async()=>{
+    const dig=String(x.a.digest||"").replace(/^sha256:/,"");
+    let nome=x.g?x.g.name:(prompt("Nome do jogo na loja:",String(x.r.name||x.rid).replace(/\s*v[0-9.]+$/i,""))||"").trim();if(!nome)return;
+    let launch=x.g?x.g.launch:(prompt("Arquivo que abre o jogo (launch) — pode deixar vazio e preencher na aba Jogos:","")||"").trim();
+    await salvarCat(c=>{
+     let g=c.games.find(y=>norm(y.id)===x.rid);
+     if(!g){g={id:x.rid,name:nome,version:"0",developer:"",description:"",tags:[],capsule_url:"icon.svg",download_url:"",sha256:"",size_mb:0,launch:launch||"",changelog:"",protegido:true,preco:0};c.games.push(g)}
+     g.version=x.ver;g.sha256=dig||g.sha256;g.size_mb=Math.max(1,Math.round(x.a.size/1048576));
+    },"Recupera "+x.r.tag_name+" do cofre");
+    say("rm","Adicionado: "+nome+". Defina preco, capa e descricao na aba Jogos.","ok");await catalogo();
+   })]));
+  say("rm",achados.length?achados.length+" release(s) fora do catalogo.":"Tudo do cofre ja esta no catalogo.",achados.length?"":"ok");
+ }catch(e){say("rm",e.message,"err")}b.disabled=false};
 </script></div></body></html>

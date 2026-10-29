@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minha conta – TSS The Swift Store</title>
+<meta name="robots" content="noindex">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<meta name="theme-color" content="#0d0c07">
+<link rel="stylesheet" href="/legal.css">
+<style>
+.c{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.3rem;margin:1rem 0}
+.c h2{margin:.1rem 0 .6rem;font-size:1.05rem;color:var(--gold)}
+label{display:block;font-size:.85rem;color:var(--mute);margin:.7rem 0 .25rem}
+input{width:100%;background:#0f0e08;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:.65rem .8rem;font:inherit}
+button,.b{display:inline-block;background:var(--gold);color:#141108;font-weight:800;border:0;border-radius:10px;padding:.65rem 1.1rem;font:700 .95rem inherit;font-family:inherit;cursor:pointer;text-decoration:none}
+button.g{background:transparent;color:var(--text);border:1px solid var(--line);font-weight:600}
+button.r{background:transparent;color:var(--err);border:1px solid var(--err);font-weight:600}
+button:disabled{opacity:.5}
+.login{display:grid;gap:.6rem;margin-top:.8rem}
+.login a{display:flex;align-items:center;justify-content:center;gap:.6rem;border:1px solid var(--line);border-radius:12px;padding:.8rem;text-decoration:none;color:var(--text);font-weight:700;background:#0f0e08}
+.login a:hover{border-color:var(--gold2)}
+.msg{min-height:1.3rem;margin-top:.6rem;font-size:.92rem}.ok{color:var(--ok)}.err{color:var(--err)}
+.who{display:flex;align-items:center;gap:.8rem}.who img{width:48px;height:48px;border-radius:50%;border:1px solid var(--line)}
+.compra{border-top:1px solid var(--line);padding:.8rem 0}.compra:first-child{border-top:0}
+.k{font-family:ui-monospace,Consolas,monospace;background:#0f0e08;border:1px dashed var(--gold);border-radius:8px;padding:.5rem .7rem;word-break:break-all;margin:.4rem 0}
+.tag{font-size:.75rem;border:1px solid var(--line);border-radius:999px;padding:.1rem .6rem;color:var(--mute)}
+.row2{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+</style></head><body><main class="doc">
+<div class="top"><a href="/">← Voltar à loja</a><span class="mut">Minha conta</span></div>
+<h1>Minha conta</h1>
+<div class="msg" id="topo" role="status"></div>
+
+<div id="deslogado" hidden>
+  <div class="c"><h2>Entrar</h2>
+    <p class="mut">Entre com sua conta para comprar, guardar suas chaves e ver suas compras. Não criamos senha: o login é feito pelo provedor que você escolher.</p>
+    <div class="login" id="provs"></div>
+    <p class="mut" style="margin-top:.8rem">Ao entrar você concorda com os <a href="/termos">Termos de Uso</a> e a <a href="/privacidade">Política de Privacidade</a>.</p>
+  </div>
+</div>
+
+<div id="logado" hidden>
+  <div class="c"><div class="who"><img id="av" alt="" hidden><div><b id="nome"></b><div class="mut" id="sub"></div></div></div>
+    <div class="row2"><a class="b" href="/auth/sair" style="background:transparent;color:var(--text);border:1px solid var(--line)">Sair</a></div></div>
+
+  <div class="c"><h2>Dados pessoais</h2>
+    <p class="mut">Usados na compra, no suporte e no antifraude. Ficam guardados cifrados. <a href="/privacidade">Saiba mais</a>.</p>
+    <label for="pn">Nome completo</label><input id="pn" autocomplete="name">
+    <label for="pc">CPF <span id="pcs" class="mut"></span></label><input id="pc" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+    <label for="pe">E-mail</label><input id="pe" type="email" autocomplete="email">
+    <div class="row2"><button id="psalvar">Salvar dados</button></div><div class="msg" id="pm"></div></div>
+
+  <div class="c"><h2>Minhas compras</h2><div id="compras" class="mut">Carregando…</div><div class="msg" id="cm"></div></div>
+
+  <div class="c"><h2>Privacidade e seus direitos</h2>
+    <p class="mut">Termos aceitos: <span id="acv">—</span></p>
+    <div class="row2"><button class="g" id="exp">Baixar meus dados</button><button class="r" id="exc">Excluir minha conta</button></div>
+    <div class="msg" id="xm"></div></div>
+</div>
+<nav class="leg"><a href="/termos">Termos de Uso</a><a href="/privacidade">Política de Privacidade</a><a href="/reembolso">Política de Reembolso</a></nav>
+</main>
+<script src="/legal.js" defer></script>
+<script>
+var $=function(i){return document.getElementById(i)};
+function say(id,t,c){var m=$(id);m.className="msg "+(c||"");m.textContent=t||""}
+function api(url,body){return fetch(url,{method:body?"POST":"GET",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:body?JSON.stringify(body):undefined}).then(function(r){return r.json().then(function(d){d._s=r.status;return d})})}
+function fmt(s){return s?new Date(s).toLocaleString("pt-BR"):"—"}
+var ST={ativa:"ativa",revogada:"revogada",reembolsada:"reembolsada",reembolso_pedido:"reembolso pedido"};
+function qs(k){var m=location.search.match(new RegExp("[?&]"+k+"=([^&]*)"));return m?decodeURIComponent(m[1].replace(/\+/g," ")):""}
+if(qs("erro"))say("topo",qs("erro"),"err");
+
+function render(d){
+  $("logado").hidden=false;$("deslogado").hidden=true;
+  $("nome").textContent=d.conta.nome||"Jogador";$("sub").textContent="Login por "+d.conta.provedor+(d.conta.email_login?" · "+d.conta.email_login:"");
+  if(d.conta.avatar){$("av").src=d.conta.avatar;$("av").hidden=false}
+  $("pn").value=d.perfil.nome_completo||"";$("pe").value=d.perfil.email||"";
+  $("pcs").textContent=d.perfil.cpf_mascarado?"(salvo: "+d.perfil.cpf_mascarado+")":"";
+  $("acv").textContent=d.aceite.versao_aceita?"versão "+d.aceite.versao_aceita+" em "+fmt(d.aceite.em):"ainda não registrado";
+  var box=$("compras");box.textContent="";
+  if(!d.compras.length){box.textContent="Você ainda não comprou nada. ";var a=document.createElement("a");a.href="/";a.textContent="Ver jogos";box.appendChild(a);return}
+  d.compras.forEach(function(c){
+    var w=document.createElement("div");w.className="compra";
+    var t=document.createElement("div");var b=document.createElement("b");b.textContent=c.nome_jogo;t.appendChild(b);t.appendChild(document.createTextNode(" "));
+    var tag=document.createElement("span");tag.className="tag";tag.textContent=ST[c.status]||c.status;t.appendChild(tag);w.appendChild(t);
+    var m=document.createElement("div");m.className="mut";m.textContent="Pedido "+c.pedido+" · "+fmt(c.criado)+(c.preco?" · R$ "+Number(c.preco).toFixed(2).replace(".",","):"");w.appendChild(m);
+    if(c.chave){var k=document.createElement("div");k.className="k";k.textContent=c.chave;w.appendChild(k)}
+    var r=document.createElement("div");r.className="row2";
+    if(c.chave){var cp=document.createElement("button");cp.className="g";cp.textContent="Copiar chave";cp.onclick=function(){navigator.clipboard&&navigator.clipboard.writeText(c.chave);cp.textContent="Copiada!"};r.appendChild(cp)}
+    if(c.status==="ativa"){var rb=document.createElement("button");rb.className="g";rb.textContent="Pedir reembolso";rb.onclick=function(){
+      var mot=prompt("Quer contar o motivo? (opcional)","");if(mot===null)return;
+      api("/api/conta",{acao:"reembolso",pedido:c.pedido,motivo:mot}).then(function(x){
+        if(x.ok){say("cm",x.dentro_7_dias===false?"Pedido enviado. Passou de 7 dias; vamos analisar (defeitos e outros casos estão na Política de Reembolso).":"Pedido enviado. Você está dentro dos 7 dias; respondemos em até 5 dias úteis.","ok");carregar()}else say("cm",x.erro||"Erro","err")})}; r.appendChild(rb)}
+    w.appendChild(r);box.appendChild(w);
+  });
+}
+function carregar(){
+  api("/api/conta").then(function(d){
+    if(d._s===401||!d.ok){
+      $("logado").hidden=true;$("deslogado").hidden=false;
+      api("/api/auth?acao=provedores").then(function(p){
+        var box=$("provs");box.textContent="";
+        var lista=(p&&p.provedores)||[];
+        if(!lista.length){box.textContent="Login ainda não configurado. Volte em breve.";return}
+        lista.forEach(function(x){var a=document.createElement("a");a.href="/auth/entrar/"+x.id+"?volta="+encodeURIComponent("/conta");a.textContent="Entrar com "+x.nome;box.appendChild(a)});
+      });return;
+    }
+    render(d);
+    if(window.TSSLegal)TSSLegal.sincronizar();
+  }).catch(function(){say("topo","Sem conexão. Tente de novo.","err")});
+}
+$("psalvar").onclick=function(){
+  var b=$("psalvar");b.disabled=true;say("pm","Salvando…");
+  api("/api/conta",{acao:"perfil",nome_completo:$("pn").value,cpf:$("pc").value,email:$("pe").value}).then(function(x){
+    b.disabled=false;if(x.ok){say("pm","Dados salvos.","ok");$("pc").value="";carregar()}else say("pm",x.erro||"Erro","err")}).catch(function(){b.disabled=false;say("pm","Sem conexão.","err")});
+};
+$("exp").onclick=function(){
+  api("/api/conta",{acao:"exportar"}).then(function(x){
+    if(!x.ok){say("xm",x.erro||"Erro","err");return}
+    var a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(x,null,2)],{type:"application/json"}));a.download="meus-dados-tss.json";a.click();say("xm","Arquivo gerado.","ok")});
+};
+$("exc").onclick=function(){
+  var t=prompt("Isso apaga seus dados pessoais e sua conta. As chaves das compras deixam de aparecer aqui. Para confirmar, digite EXCLUIR:");
+  if(t!=="EXCLUIR")return;
+  api("/api/conta",{acao:"excluir",confirmar:"EXCLUIR"}).then(function(x){if(x.ok){location.href="/"}else say("xm",x.erro||"Erro","err")});
+};
+carregar();
+</script></body></html>
