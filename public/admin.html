@@ -62,7 +62,7 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 </section>
 
 <section id="t-publicar" hidden><div class="card"><h2>Publicar jogo / nova versao</h2>
-<p class="mut">Envia o .zip para o cofre privado e atualiza o catalogo. Precisa do token do GitHub.</p>
+<p class="mut">Envia o .zip para a pasta <b>jogos/&lt;id&gt;/</b> do cofre privado (cada jogo na sua pasta) e atualiza o catalogo. Precisa do token do GitHub.</p>
 <label>Token do GitHub (acesso a tss-store e tss-cofre, Contents: read/write)</label><input id="tk" type="password" autocomplete="off" placeholder="github_pat_…">
 <div class="row"><div><label>Jogo</label><select id="pj"></select></div><div><label>Versao (numero maior que a atual)</label><input id="pv" placeholder="14"></div></div>
 <div id="novo" hidden><div class="row"><div><label>ID (minusculas, sem espaco)</label><input id="nid"></div><div><label>Nome</label><input id="nn"></div><div><label>Desenvolvedor</label><input id="nd"></div><div><label>Arquivo que abre (launch)</label><input id="nl" placeholder="Pasta/sistema/executor.py"></div></div>
@@ -74,7 +74,7 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <label>Arquivo .zip do jogo</label><input id="pf" type="file" accept=".zip">
 <p><button id="pb">Publicar</button></p><div class="msg" id="pm"></div></div>
 <div class="card"><h2>Recuperar jogo publicado que nao apareceu</h2>
-<p class="mut">Procura no cofre versoes que estao nas releases mas faltam no catalogo (ou estao mais novas) e adiciona com um clique.</p>
+<p class="mut">Procura na pasta jogos do cofre versoes que faltam no catalogo (ou estao mais novas) e adiciona com um clique.</p>
 <p><button id="rb">Procurar no cofre</button></p><div class="msg" id="rm"></div><div class="sc"><table id="rt"></table></div></div>
 <div class="card"><h2>Link do instalador do Hub</h2><p class="mut">O link do TSS Hub no Mediafire. Aparece na pagina de resgate.</p>
 <input id="hu" placeholder="https://www.mediafire.com/…"><p><button id="hb">Salvar link</button></p><div class="msg" id="hm"></div></div></section>
@@ -254,21 +254,18 @@ $("pb").onclick=async()=>{const b=$("pb");b.disabled=true;
   const nome=novo?$("nn").value.trim():cat.games.find(x=>x.id===id).name;
   say("pm","Calculando SHA-256…");const h=await crypto.subtle.digest("SHA-256",await f.arrayBuffer());const sh=[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("");
   const tag=id+"-v"+ver;
-  /* 1) release no cofre (se ja existir de uma tentativa anterior, reaproveita) */
-  say("pm","Criando versao "+tag+" no cofre…");
-  let rel=null;
-  const rr=await gh(`/repos/${OW}/${CO}/releases`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tag_name:tag,name:nome+" v"+ver,draft:false,prerelease:false})});
-  if(rr.status===422){const ex=await gh(`/repos/${OW}/${CO}/releases/tags/${encodeURIComponent(tag)}`);if(!ex.ok)throw new Error("A versao "+tag+" ja existe no cofre mas nao consegui le-la ("+ex.status+").");rel=await ex.json()}
-  else if(!rr.ok)throw new Error("Nao consegui criar a versao ("+rr.status+"). Token precisa de acesso ao tss-cofre.");
-  else rel=await rr.json();
-  /* 2) arquivo .zip (pula se a release ja tem o arquivo completo) */
-  const jaTem=(rel.assets||[]).find(a=>a.state==="uploaded"&&a.size===f.size);
-  if(!jaTem){
-   for(const a of (rel.assets||[]))await gh(`/repos/${OW}/${CO}/releases/assets/${a.id}`,{method:"DELETE"});
-   await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open("POST",`https://uploads.github.com/repos/${OW}/${CO}/releases/${rel.id}/assets?name=${encodeURIComponent(tag+".zip")}`);
-    x.setRequestHeader("Authorization","Bearer "+tok());x.setRequestHeader("Content-Type","application/zip");x.setRequestHeader("Accept","application/vnd.github+json");
-    x.upload.onprogress=e=>{if(e.lengthComputable)say("pm","Enviando… "+Math.round(e.loaded/e.total*100)+"%")};x.onload=()=>x.status<300?ok():no(new Error("Falha no envio ("+x.status+")"));x.onerror=()=>no(new Error("Falha de rede no envio."));x.send(f)});
-  }
+  /* 1) arquivo na pasta jogos/<id>/ do cofre (ex.: jogos/backrooms-demo/, jogos/ashfall/) */
+  const arq=tag+".zip",pasta="jogos/"+id;
+  if(f.size>95*1024*1024)throw new Error("O .zip tem mais de 95 MB e o GitHub nao aceita na pasta jogos. Reduza o arquivo.");
+  say("pm","Preparando arquivo…");
+  const conteudo=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=()=>no(new Error("Nao consegui ler o arquivo."));r.readAsDataURL(f)});
+  let shaAntigo=null;const ex=await gh(`/repos/${OW}/${CO}/contents/${pasta}/${encodeURIComponent(arq)}`);if(ex.ok){shaAntigo=(await ex.json()).sha}
+  await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open("PUT",`https://api.github.com/repos/${OW}/${CO}/contents/${pasta}/${encodeURIComponent(arq)}`);
+   x.setRequestHeader("Authorization","Bearer "+tok());x.setRequestHeader("Accept","application/vnd.github+json");x.setRequestHeader("Content-Type","application/json");
+   x.upload.onprogress=e=>{if(e.lengthComputable)say("pm","Enviando para "+pasta+"… "+Math.round(e.loaded/e.total*100)+"%")};
+   x.onload=()=>x.status<300?ok():no(new Error("Falha no envio ("+x.status+"). O token precisa de Contents: read/write no tss-cofre."));
+   x.onerror=()=>no(new Error("Falha de rede no envio."));
+   x.send(JSON.stringify({message:"Publica "+arq,content:conteudo,sha:shaAntigo||undefined}))});
   let capa="";if(img){say("pm","Enviando capa…");capa=await enviarCapa(id,img)}
   /* 3) catalogo: relido na hora e regravado com retry (evita o erro de versao desatualizada) */
   say("pm","Atualizando catalogo…");
@@ -284,6 +281,7 @@ $("pb").onclick=async()=>{const b=$("pb");b.disabled=true;
   /* 4) confere de verdade se entrou */
   say("pm","Conferindo…");
   if(!(await confirmarNoCatalogo(id,ver)))throw new Error("O arquivo subiu, mas o jogo nao apareceu no catalogo. Use 'Recuperar jogo publicado' abaixo.");
+  try{const lp=await gh(`/repos/${OW}/${CO}/contents/${pasta}`);if(lp.ok){for(const a of await lp.json()){if(a.type==="file"&&/\.zip$/i.test(a.name)&&a.name!==arq)await gh(`/repos/${OW}/${CO}/contents/${pasta}/${encodeURIComponent(a.name)}`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"Remove versao antiga "+a.name,sha:a.sha})})}}}catch(e){}
   say("pm","Publicado: "+nome+" v"+ver+". Em ~30 segundos aparece na loja e no Hub."+(novo?" O jogo novo ja entra na loja com o preco e a capa definidos.":""),"ok");await catalogo();
  }catch(e){say("pm",e.message,"err")}b.disabled=false};
 
@@ -293,15 +291,17 @@ $("rb").onclick=async()=>{
  try{
   localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub (campo acima).");
   say("rm","Procurando…");
-  const rl=await gh(`/repos/${OW}/${CO}/releases?per_page=100`);if(!rl.ok)throw new Error("Nao consegui ler o cofre ("+rl.status+").");
-  const rels=await rl.json();const{cat}=await lerCat();
+  const lj=await gh(`/repos/${OW}/${CO}/contents/jogos`);if(!lj.ok&&lj.status!==404)throw new Error("Nao consegui ler o cofre ("+lj.status+").");
+  const pastas=lj.ok?(await lj.json()).filter(x=>x.type==="dir"):[];const{cat}=await lerCat();
   const norm=x=>String(x).toLowerCase().replace(/_/g,"-");
   const achados=[];
-  for(const r of rels){
-   if(r.draft)continue;const m=String(r.tag_name).match(/^(.+?)[-_]v?([0-9]+(?:\.[0-9]+)*)$/i);if(!m)continue;
-   const rid=norm(m[1]),ver=m[2];const a=(r.assets||[]).find(x=>/\.zip$/i.test(x.name)&&x.state==="uploaded");if(!a)continue;
-   const g=(cat.games||[]).find(x=>norm(x.id)===rid);
-   if(!g||maior(ver,g.version))achados.push({rid,ver,r,a,g});
+  for(const d of pastas){
+   const lf=await gh(`/repos/${OW}/${CO}/contents/jogos/${encodeURIComponent(d.name)}`);if(!lf.ok)continue;
+   for(const a of await lf.json()){
+    const m=String(a.name).match(/-v([0-9]+(?:\.[0-9]+)*)\.zip$/i);if(a.type!=="file"||!m)continue;
+    const rid=norm(d.name),ver=m[1];const g=(cat.games||[]).find(x=>norm(x.id)===rid);
+    if(!g||maior(ver,g.version))achados.push({rid,ver,r:{tag_name:"jogos/"+d.name+"/"+a.name,name:d.name},a:{size:a.size,digest:""},g});
+   }
   }
   tabela($("rt"),["Release","Jogo","Versao","Estado",""],achados.map(x=>[x.r.tag_name,x.rid,x.ver,x.g?"mais nova que o catalogo (v"+x.g.version+")":"fora do catalogo",
    btn("Adicionar ao catalogo",async()=>{
@@ -315,6 +315,6 @@ $("rb").onclick=async()=>{
     },"Recupera "+x.r.tag_name+" do cofre");
     say("rm","Adicionado: "+nome+". Defina preco, capa e descricao na aba Jogos.","ok");await catalogo();
    })]));
-  say("rm",achados.length?achados.length+" release(s) fora do catalogo.":"Tudo do cofre ja esta no catalogo.",achados.length?"":"ok");
+  say("rm",achados.length?achados.length+" arquivo(s) fora do catalogo.":"Tudo do cofre ja esta no catalogo.",achados.length?"":"ok");
  }catch(e){say("rm",e.message,"err")}b.disabled=false};
 </script></div></body></html>

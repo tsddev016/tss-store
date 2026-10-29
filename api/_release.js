@@ -60,6 +60,47 @@ function scoreAsset(name, jogo) {
   return s;
 }
 
+
+// ---- Pasta "jogos" do cofre: jogos/<id-do-jogo>/<id>-v<versao>.zip (ex.: jogos/backrooms-demo/, jogos/ashfall/) ----
+const PASTA = "jogos";
+
+function numVersao(nome) {
+  const m = String(nome || "").match(/-v([0-9]+(?:\.[0-9]+)*)\.zip$/i);
+  return m ? m[1].split(".").map((n) => parseInt(n, 10) || 0) : [];
+}
+function cmpVersao(a, b) {
+  for (let i = 0; i < Math.max(a.length, b.length); i++) {
+    const d = (a[i] || 0) - (b[i] || 0);
+    if (d) return d;
+  }
+  return 0;
+}
+
+/** Lista os .zip de jogos/<jogo>/ no cofre. [] se a pasta nao existe. */
+async function listarPasta(jogo) {
+  try {
+    const r = await fetch(`${GH}/repos/${COFRE}/contents/${PASTA}/${encodeURIComponent(jogo)}`, {
+      headers: hdr(),
+      cache: "no-store",
+    });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return Array.isArray(j) ? j.filter((x) => x.type === "file" && /\.zip$/i.test(x.name)) : [];
+  } catch (e) {
+    console.error("listarPasta:", e && e.message);
+    return [];
+  }
+}
+
+/** Escolhe o zip da versao do catalogo; se nao houver, o de maior versao da pasta. */
+function escolherZip(arquivos, jogo, versao) {
+  if (!arquivos.length) return null;
+  const v = String(versao || "").toLowerCase();
+  const exato = arquivos.find((a) => a.name.toLowerCase() === `${String(jogo).toLowerCase()}-v${v}.zip`);
+  if (exato) return exato;
+  return arquivos.slice().sort((a, b) => cmpVersao(numVersao(b.name), numVersao(a.name)))[0];
+}
+
 async function lerCatalogo() {
   // 1) GitHub (mais novo possivel). Se o token nao enxerga o tss-store, nao quebra: cai no passo 2.
   try {
@@ -157,6 +198,23 @@ async function resolverDownload(jogo) {
   const g = (cat.games || []).find((x) => x.id === jogo);
   if (!g) throw Object.assign(new Error("Jogo nao encontrado no catalogo."), { codigo: "sem_jogo", status: 404 });
 
+  // 1) Pasta jogos/<id>/ do cofre (preferida)
+  const arq = escolherZip(await listarPasta(jogo), jogo, g.version);
+  if (arq) {
+    let urlPasta = arq.download_url || "";
+    if (!urlPasta) {
+      const rr = await fetch(arq.url, { headers: hdr(), cache: "no-store" });
+      if (rr.ok) urlPasta = (await rr.json()).download_url || "";
+    }
+    if (urlPasta) {
+      return {
+        g, rel: null, asset: arq, url: urlPasta, sha256: g.sha256 || "",
+        versao: String(g.version), tag: PASTA + "/" + jogo, nome: arq.name,
+      };
+    }
+  }
+
+  // 2) Reserva: release antiga no cofre
   const rel = await acharRelease(jogo, g.version);
   if (!rel) {
     throw Object.assign(
@@ -191,5 +249,5 @@ async function resolverDownload(jogo) {
 module.exports = {
   hdr, GH, COFRE, SITE,
   variantesId, tagsCandidatas, acharRelease, acharAsset, linkTemporario,
-  lerCatalogo, resolverDownload,
+  lerCatalogo, resolverDownload, listarPasta, escolherZip, PASTA,
 };
