@@ -60,6 +60,12 @@ module.exports = async (req, res) => {
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
     const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 
+    // Visitante sem e-mail: usa e-mail da loja (env MP_FALLBACK_PAYER_EMAIL) ou um e-mail sintetico valido por pedido.
+    const emailValido = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s || "");
+    const emailPagador = emailValido(email) ? email
+      : emailValido(process.env.MP_FALLBACK_PAYER_EMAIL) ? process.env.MP_FALLBACK_PAYER_EMAIL.trim().toLowerCase()
+      : "visitante+" + pedidoId + "@tss-store.vercel.app";
+
     const minutos = 30;
     const expira = new Date(Date.now() + minutos * 60 * 1000).toISOString();
 
@@ -84,11 +90,12 @@ module.exports = async (req, res) => {
           unit_price: Number(preco.toFixed(2)),
         }],
       },
-      ...(email || nome || L.cpfValido(cpf) ? { payer: {
-        ...(email ? { email } : {}),
+      // O Mercado Pago exige "payer" (com email) mesmo em compra como visitante.
+      payer: {
+        email: emailPagador,
         ...(nome ? { first_name: nome.split(" ")[0].slice(0, 40), last_name: nome.split(" ").slice(1).join(" ").slice(0, 60) } : {}),
         ...(L.cpfValido(cpf) ? { identification: { type: "CPF", number: cpf } } : {}),
-      } } : {}),
+      },
     };
 
     const idem = crypto.createHash("sha256").update(pedidoId + String(Date.now())).digest("hex").slice(0, 32);
@@ -129,15 +136,4 @@ module.exports = async (req, res) => {
   } catch (e) {
     return L.responder(res, e);
   }
-      // O Mercado Pago exige payer mesmo para compras como visitante.
-      payer: {
-        email: email || "p82841673@gmail.com",
-        ...(nome ? {
-          first_name: nome.split(" ")[0].slice(0, 40),
-          last_name: nome.split(" ").slice(1).join(" ").slice(0, 60)
-        } : {}),
-        ...(L.cpfValido(cpf) ? {
-          identification: { type: "CPF", number: cpf }
-        } : {}),
-      },
 };
