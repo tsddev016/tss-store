@@ -86,7 +86,7 @@ var preco=0,paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false,confirma
 
 function setPreco(p){document.getElementById("preco").textContent=p<=0?"R$ 0,01 (teste)":"R$ "+p.toFixed(2).replace(".",",")}
 function el(id){return document.getElementById(id)}
-fetch("/catalog.json",{cache:"no-store"}).then(function(r){return r.json()}).then(function(c){
+fetch("/api/catalogo",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()}).catch(function(){return fetch("/catalog.json",{cache:"no-store"}).then(function(r){return r.json()})}).then(function(c){
   var g=(c.games||[]).find(function(x){return x.id===jogo});
   if(!g||!g.protegido){el("titulo").textContent="Jogo não encontrado";el("sub").textContent="";el("entrar").hidden=true;el("form").hidden=true;say("Esse jogo não está à venda.","err");return}
   el("titulo").textContent=g.name;preco=Number(g.preco)||0;setPreco(preco);iniciarFluxo();
