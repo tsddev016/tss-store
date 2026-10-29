@@ -6,9 +6,11 @@ const NOMES = {
   pedido: ["orderCode", "order_code", "order_id", "orderid", "order_number", "ordernumber", "pedido", "pedido_id", "id_pedido", "numero_pedido",
     "transaction_id", "transacao", "sale_id", "venda", "purchase_id", "compra", "external_reference"],
   email: ["email", "buyer_email", "customer_email", "comprador_email", "e-mail", "buyerEmail"],
+  cpf: ["cpf", "document", "documento", "buyer_cpf", "buyerCpf", "tax_id", "taxId", "doc"],
+  nome: ["full_name", "fullName", "buyer_name", "buyerName", "customer_name", "nome", "name", "payer_name"],
   status: ["status", "payment_status", "situacao", "state"],
   evento: ["event", "evento", "type", "tipo", "topic", "action"],
-  produto: ["productTitle", "product_title", "product_id", "produto_id", "sku", "product_name", "produto", "product", "item", "title", "titulo", "name"],
+  produto: ["productTitle", "product_title", "product_id", "produto_id", "sku", "product_name", "produto", "product", "item", "title", "titulo"],
 };
 const ESTORNO = /(refund|cancel|chargeback|estorn|reembols|disput|revers|expir|fail|refus|recus|negad)/i;
 const PAGO = /^(paid|approved|complete|completed|confirmed|success|succeeded|pago|aprovad[oa]|conclu[ií]d[oa]|finalizad[oa]|captured|settled)$/i;
@@ -39,7 +41,7 @@ function achar(obj, nome) {
 function campo(b, tipo) {
   const env = process.env["WEBHOOK_CAMPO_" + tipo.toUpperCase()];
   if (env) { const v = porCaminho(b, env); if (simples(v)) return String(v).trim(); }
-  for (const n of NOMES[tipo]) { const v = achar(b, n); if (v !== undefined) return v; }
+  for (const n of NOMES[tipo] || []) { const v = achar(b, n); if (v !== undefined) return v; }
   if (tipo === "pedido") {
     const data = b && b.data;
     if (data && simples(data.orderCode)) return String(data.orderCode);
@@ -76,7 +78,6 @@ function rawBody(req) {
   try { return JSON.stringify(req.body || {}); } catch (e) { return ""; }
 }
 
-// Standard Webhooks (GameMarket): HMAC-SHA256 de "id.timestamp.corpo"
 function verificarAssinaturaGM(req) {
   const secretEnv = process.env.GM_WEBHOOK_SECRET || process.env.WEBHOOK_SECRET || "";
   if (!secretEnv) return { ok: false, motivo: "sem_segredo" };
@@ -86,7 +87,6 @@ function verificarAssinaturaGM(req) {
   const timestamp = String(h["webhook-timestamp"] || h["Webhook-Timestamp"] || h["x-gamemarket-timestamp"] || "");
   const signatures = String(h["webhook-signature"] || h["Webhook-Signature"] || h["x-gamemarket-signature"] || "");
 
-  // Fallback legado: segredo simples na query/header
   if (!id && !signatures) {
     if (L.seguro(segredoRecebido(req), secretEnv)) return { ok: true, legado: true };
     return { ok: false, motivo: "segredo_invalido" };
@@ -98,7 +98,6 @@ function verificarAssinaturaGM(req) {
   let key;
   try {
     const cleaned = secretEnv.replace(/^whsec_/, "");
-    // tenta base64; se falhar, usa o texto puro
     key = Buffer.from(cleaned, "base64");
     if (!key.length) key = Buffer.from(secretEnv, "utf8");
   } catch (e) {
@@ -129,7 +128,6 @@ function isGameMarket(req) {
     (L.corpo(req).event && String(L.corpo(req).event).startsWith("sale.")));
 }
 
-// ---- Mercado Pago IPN ----
 async function processarMercadoPago(req) {
   const q = req.query || {};
   const b = L.corpo(req);
@@ -202,7 +200,6 @@ module.exports = async (req, res) => {
 
     if (req.method !== "POST") throw new L.Falha(405, "Metodo nao permitido.", "metodo");
 
-    // GameMarket / generico
     const ver = verificarAssinaturaGM(req);
     if (!ver.ok) {
       await L.sleep(400);
@@ -212,6 +209,8 @@ module.exports = async (req, res) => {
     const b = L.corpo(req);
     const pedido = campo(b, "pedido");
     const email = campo(b, "email");
+    const cpf = campo(b, "cpf");
+    const nome = campo(b, "nome");
     const status = campo(b, "status") || "";
     const evento = campo(b, "evento") || String((req.headers && (req.headers["x-gamemarket-event"] || req.headers["X-GameMarket-Event"])) || "");
     const jogo = jogoDoProduto(campo(b, "produto"));
@@ -236,13 +235,12 @@ module.exports = async (req, res) => {
         if (rec && data.keys[rec.h]) { data.keys[rec.h].revogada = true; reg(true, "Chave revogada (estorno/cancelamento)."); return { salvar: true, resultado: { revogada: true } }; }
         reg(true, "Estorno de pedido desconhecido (nada a revogar)."); return { salvar: true, resultado: { revogada: false } };
       }
-      const x = L.registrarPedido(data, { pedido, email, jogo, origem: "gamemarket" });
+      const x = L.registrarPedido(data, { pedido, email, cpf, nome, jogo, origem: "gamemarket" });
       reg(true, x.novo ? "Chave criada (GameMarket)." : "Pedido ja conhecido (mesma chave).");
       return { salvar: true, resultado: { chave: x.chave, jogo, novo: x.novo, pedido } };
     }, "sentinela: aviso GameMarket");
 
     if (r.erro) return res.status(422).json({ ok: false, erro: "Nao achei o numero do pedido no aviso.", codigo: "sem_pedido" });
-    // Resposta 200 rapida (GM exige 2xx em ate 10s)
     return res.status(200).json(Object.assign({ ok: true }, r));
   } catch (e) { return L.responder(res, e); }
 };
