@@ -59,6 +59,10 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <img class="prev" id="eprev" alt="" hidden>
 <p><button id="es">Salvar alteracoes</button></p>
 <div class="msg" id="em"></div></div>
+<div class="card"><h2>Apagar jogo</h2>
+<p class="mut">Apaga os arquivos do jogo selecionado acima na pasta <b>jogos/&lt;id&gt;/</b> do cofre. Sem arquivo, o jogo some da loja em ate 5 segundos. Precisa do token do GitHub (Contents: read/write no tss-cofre).</p>
+<label class="chk"><input id="dcat" type="checkbox"> Apagar tambem do catalogo (perde nome, preco e descricao)</label>
+<p><button id="db" class="s">Apagar jogo</button></p><div class="msg" id="dm"></div></div>
 </section>
 
 <section id="t-publicar" hidden><div class="card"><h2>Publicar jogo / nova versao</h2>
@@ -285,6 +289,33 @@ $("pb").onclick=async()=>{const b=$("pb");b.disabled=true;
   say("pm","Publicado: "+nome+" v"+ver+". Em ~30 segundos aparece na loja e no Hub."+(novo?" O jogo novo ja entra na loja com o preco e a capa definidos.":""),"ok");await catalogo();
  }catch(e){say("pm",e.message,"err")}b.disabled=false};
 
+/* ---- apagar jogo: remove os arquivos de jogos/<id>/ do cofre (e, se marcado, a entrada do catalogo) ---- */
+$("db").onclick=async()=>{
+ const b=$("db");
+ try{
+  localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub (campo acima).");
+  const id=$("ej").value;if(!id)throw new Error("Escolha o jogo.");
+  const tudo=$("dcat").checked;
+  if(!confirm("Apagar o jogo '"+id+"'?\n\nOs arquivos de jogos/"+id+"/ serao apagados do cofre"+(tudo?" e o jogo sai do catalogo":"")+". Isso nao da para desfazer."))return;
+  b.disabled=true;say("dm","Apagando...","");
+  const lf=await gh(`/repos/${OW}/${CO}/contents/jogos/${encodeURIComponent(id)}`);
+  let n=0;
+  if(lf.status===404){/* pasta nao existe: nada para apagar no cofre */}
+  else if(!lf.ok)throw new Error("Nao consegui ler a pasta do jogo ("+lf.status+"). Confira o token.");
+  else{
+   const arqs=(await lf.json()).filter(x=>x.type==="file");
+   for(const f of arqs){
+    const r=await gh(`/repos/${OW}/${CO}/contents/${f.path.split("/").map(encodeURIComponent).join("/")}`,{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"admin: apaga "+f.path,sha:f.sha})});
+    if(!r.ok)throw new Error("Falha ao apagar "+f.name+" ("+r.status+"). O token precisa de Contents: read/write no tss-cofre.");
+    n++;
+   }
+  }
+  if(tudo)await salvarCat(cat=>{cat.games=(cat.games||[]).filter(g=>g.id!==id)},"admin: remove "+id+" do catalogo");
+  say("dm","Pronto: "+n+" arquivo(s) apagado(s)"+(tudo?" e jogo removido do catalogo":"")+". A loja atualiza em ate 5 segundos.","ok");
+  await catalogo();
+ }catch(e){say("dm",e.message,"err")}
+ b.disabled=false;
+};
 /* ---- recuperar releases do cofre que nao estao no catalogo ---- */
 $("rb").onclick=async()=>{
  const b=$("rb");b.disabled=true;
