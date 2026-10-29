@@ -56,19 +56,6 @@
       ]
     },
     {
-      "source": "/conta",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        }
-      ]
-    },
-    {
       "source": "/empresa.json",
       "headers": [
         {
@@ -97,16 +84,6 @@
           "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/auth/:acao/:provedor",
-      "destination": "/api/auth?acao=:acao&provedor=:provedor"
-    },
-    {
-      "source": "/auth/:acao",
-      "destination": "/api/auth?acao=:acao"
     }
   ]
 }

@@ -1,7 +1,6 @@
-// Comprador informa numero do pedido + e-mail da compra e recebe a chave.
-// O e-mail so existe gravado como codigo HMAC; CPF e nome nao sao guardados.
+// Comprador informa a CHAVE DE RECUPERACAO (REC-XXXXX-...) e recebe de volta a chave de ativacao.
+// Sem e-mail, sem nome, sem CPF: so a chave de recuperacao (no cofre fica apenas o hash dela).
 const L = require("./_cofre");
-const A = require("./_auth");
 
 const tentativas = new Map();
 function limitar(ip) {
@@ -19,43 +18,26 @@ module.exports = async (req, res) => {
     if (!limitar(ip)) throw new L.Falha(429, "Muitas tentativas. Espere um minuto.", "limite");
 
     const b = L.corpo(req);
-    const pid = L.idPedido(b.pedido);
-    const email = String(b.email || "").trim();
+    const codigo = String(b.recuperacao || "").trim();
+    const n = L.norm(codigo);
+    if (codigo.length > 60 || (n.length !== 20 && n.length !== 23)) {
+      throw new L.Falha(400, "Informe a chave de recuperacao completa (REC-XXXXX-XXXXX-XXXXX-XXXXX).", "dados");
+    }
 
-    const NAO = new L.Falha(404, "Nao encontramos essa compra. Confira o numero do pedido e o e-mail usado na compra. Se o problema continuar, fale com o suporte.", "nao_achei");
-    if (!pid) throw NAO;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 120) throw new L.Falha(400, "Informe o e-mail usado na compra.", "dados");
-
+    const NAO = new L.Falha(404, "Nao encontramos essa compra. Confira a chave de recuperacao. Se o problema continuar, fale com o suporte no Discord.", "nao_achei");
     const { data } = await L.lerChaves();
-    const rec = data.pedidos[pid];
-    if (!rec) { await L.sleep(400); throw NAO; }
+    const achou = L.acharPorRecuperacao(data, codigo);
+    if (!achou) { await L.sleep(400); throw NAO; }
 
-    // Confere o e-mail (comparado como codigo HMAC). Pedido sem e-mail gravado nao se resgata sozinho: vai pelo suporte.
-    const ok = !!rec.email && L.seguro(rec.email, L.hashEmail(email));
-    if (!ok) { await L.sleep(400); throw NAO; }
-
-    const k = data.keys[rec.h];
+    const k = data.keys[achou.rec.h];
     if (!k) throw NAO;
     if (k.revogada) throw new L.Falha(403, "Esta compra foi cancelada ou estornada.", "revogada");
 
-    // Se o comprador esta logado, guarda a compra na conta dele.
-    let salvaNaConta = false;
-    try {
-      const sess = A.sessao(req);
-      if (sess && !rec.conta) {
-        salvaNaConta = await L.mutar((d) => {
-          const r = d.pedidos[pid];
-          if (r && !r.conta && d.contas[sess.uid]) { r.conta = sess.uid; return { salvar: true, resultado: true }; }
-          return { salvar: false, resultado: false };
-        }, "conta: vincula compra");
-      } else if (sess && rec.conta === sess.uid) salvaNaConta = true;
-    } catch (e) { /* login nao configurado: segue sem vincular */ }
-
     return res.status(200).json({
       ok: true,
-      chave: L.chaveDoPedido(pid, rec.jogo),
-      jogo: rec.jogo,
-      salva_na_conta: salvaNaConta,
+      chave: L.chaveDoPedido(achou.pid, achou.rec.jogo),
+      jogo: achou.rec.jogo,
+      pedido: achou.pid,
     });
   } catch (e) { return L.responder(res, e); }
 };

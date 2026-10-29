@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const GH = process.env.GH_API || "https://api.github.com";
 const COFRE = process.env.COFRE_REPO || "tsddev016/tss-cofre";
 const MAX_PADRAO = 2;
-const TERMOS_VERSAO = "2026-10-29"; // mude junto com public/legal.js quando alterar os termos
+const TERMOS_VERSAO = "2026-10-30"; // mude junto com public/legal.js quando alterar os termos
 const ALFA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 simbolos, sem 0/O/1/I
 
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
@@ -15,8 +15,6 @@ const hmacHex = (tag, s) => {
   if (!seg) throw new Falha(500, "Servidor ainda sem KEY_SECRET configurada.", "config");
   return crypto.createHmac("sha256", seg).update(tag + ":" + s).digest("hex");
 };
-// Conta minima: o id da conta e so um codigo derivado do ID do login (nada de nome, e-mail ou foto no banco).
-const idConta = (prov, id) => String(prov) + "_" + hmacHex("conta", String(prov) + ":" + String(id)).slice(0, 32);
 const norm = (k) => String(k || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const agora = () => new Date().toISOString();
@@ -137,24 +135,9 @@ function entregarRecuperacao(data, pedido) {
 const idPedido = (p) => String(p == null ? "" : p).trim().toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 64);
 const hashEmail = (e) => hmacHex("email", String(e || "").trim().toLowerCase());
 
-// CPF: so digitos, 11 caracteres
-const soDigitos = (s) => String(s || "").replace(/\D/g, "");
-function normalizarCpf(c) {
-  const d = soDigitos(c);
-  return d.length === 11 ? d : "";
-}
-function cpfValido(c) {
-  const d = normalizarCpf(c);
-  if (!d || /^(\d)\1{10}$/.test(d)) return false;
-  let s = 0; for (let i = 0; i < 9; i++) s += Number(d[i]) * (10 - i);
-  let r = (s * 10) % 11; if (r === 10) r = 0; if (r !== Number(d[9])) return false;
-  s = 0; for (let i = 0; i < 10; i++) s += Number(d[i]) * (11 - i);
-  r = (s * 10) % 11; if (r === 10) r = 0; return r === Number(d[10]);
-}
-
 // Cria (ou devolve) a chave de um pedido. Idempotente.
-// Minimizacao: nome e CPF nunca chegam aqui; do comprador so fica o e-mail, como codigo HMAC (para o resgate).
-// Pedidos do Pix tambem guardam o HASH da chave de recuperacao (rec_h), nunca a chave em si.
+// Sem dados pessoais: a compra nao coleta nome, CPF nem e-mail. O e-mail so existe (como codigo HMAC) em pedidos manuais ou antigos.
+// Pedidos do Pix guardam o HASH da chave de recuperacao (rec_h), nunca a chave em si.
 function registrarPedido(data, { pedido, email, jogo, origem, conta, mp_payment, preco, aceite }) {
   const pid = idPedido(pedido);
   if (!pid) throw new Falha(400, "Pedido sem identificacao.", "pedido");
@@ -194,6 +177,6 @@ function responder(res, e) {
 }
 
 module.exports = { Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
-  chaveAleatoria, chaveDoPedido, idPedido, TERMOS_VERSAO, hashEmail, normalizarCpf, cpfValido,
+  chaveAleatoria, chaveDoPedido, idPedido, TERMOS_VERSAO, hashEmail,
   codigoRecuperacao, hashRecuperacao, acharPorRecuperacao, entregarRecuperacao,
-  registrarPedido, responder, MAX_PADRAO, idConta };
+  registrarPedido, responder, MAX_PADRAO };

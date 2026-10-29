@@ -1,7 +1,6 @@
 // Confirma no Mercado Pago se o Pix caiu e emite a chave de ativacao.
 // Nao depende so do webhook: o front chama isso apos status=approved.
 const L = require("./_cofre");
-const A = require("./_auth");
 const R = require("./_release");
 const D = require("./_discord");
 
@@ -40,7 +39,10 @@ module.exports = async (req, res) => {
     }
 
     const pedido = String(pay.external_reference || pay.id || id);
-    const email = (pay.payer && pay.payer.email) || b.email || "";
+    // Sem login: so quem criou o Pix conhece o numero do pedido (aleatorio) e pode ver a chave.
+    if (String(b.pedido || "") !== String(pay.external_reference || "")) {
+      throw new L.Falha(403, "Pedido nao confere com o pagamento.", "pedido");
+    }
     const meta = pay.metadata || {};
     const jogo = String(meta.jogo || "").toLowerCase();
     if (!jogo) throw new L.Falha(400, "Pagamento sem jogo associado.", "pedido");
@@ -53,19 +55,12 @@ module.exports = async (req, res) => {
     if (!Number.isFinite(preco) || preco <= 0 || !(pago + 0.005 >= preco)) {
       throw new L.Falha(400, "O valor pago nao confere com o preco do jogo. Fale com o suporte com o numero do pedido.", "valor");
     }
-    // Compra feita logado: so a mesma conta ve a chave aqui (as demais pegam em /resgatar com pedido + e-mail).
-    if (meta.conta) {
-      const sess = A.sessao(req);
-      if (!sess || sess.uid !== meta.conta) throw new L.Falha(403, "Entre na conta que fez a compra para ver a chave.", "login");
-    }
 
     const out = await L.mutar((data) => {
       const x = L.registrarPedido(data, {
         pedido,
-        email,
         jogo,
         origem: "mercadopago",
-        conta: meta.conta || "",
         mp_payment: id,
         preco: pay.transaction_amount,
         aceite: meta.aceite || "",

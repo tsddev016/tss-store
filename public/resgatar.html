@@ -13,13 +13,11 @@ code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border
 a{color:var(--ac)}
 </style></head><body><div class="w">
 <h1>Resgatar chave do jogo</h1>
-<p class="mut">Comprou no site da TSS? Informe o numero do pedido e o <b>e-mail</b> usado na compra para ver a chave de ativacao.</p>
+<p class="mut">Perdeu a chave de ativacao? Informe a <b>chave de recuperacao</b> (comeca com REC-) que apareceu na hora da compra. A TSS nao pede nome, CPF nem e-mail.</p>
 <div class="card">
-<label>Numero do pedido</label>
-<input id="p" autocomplete="off" placeholder="ex.: ABC123 ou numero do pedido">
-<label>E-mail da compra</label>
-<input id="e" type="email" autocomplete="email" placeholder="o mesmo e-mail usado na compra">
-<p><button id="b">Ver minha chave</button></p>
+<label>Chave de recuperacao</label>
+<input id="p" autocomplete="off" spellcheck="false" placeholder="REC-XXXXX-XXXXX-XXXXX-XXXXX">
+<p><button id="b">Ver minha chave de ativacao</button></p>
 <div class="msg" id="m"></div>
 </div>
 <div class="card" id="r" hidden>
@@ -33,7 +31,7 @@ a{color:var(--ac)}
 </ol>
 <p class="mut">Se o Windows avisar “app desconhecido”: Mais informacoes → Executar assim mesmo.</p>
 </div>
-<p class="mut"><a href="/">Voltar a loja</a> · <a href="/conta">Minha conta</a> · <a href="/termos">Termos</a> · <a href="/privacidade">Privacidade</a> · <a href="/reembolso">Reembolso</a></p>
+<p class="mut"><a href="/">Voltar a loja</a> · <a href="/termos">Termos</a> · <a href="/privacidade">Privacidade</a> · <a href="/reembolso">Reembolso</a></p>
 </div>
 <script>
 const $=i=>document.getElementById(i);
@@ -42,12 +40,11 @@ $("b").onclick=async()=>{
   const m=$("m");m.className="msg";m.textContent="Conferindo…";$("b").disabled=true;
   try{
     const r=await fetch("/api/resgatar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      pedido:$("p").value,
-      email:$("e").value
+      recuperacao:$("p").value
     })});
     const d=await r.json();
     if(!d.ok){m.className="msg err";m.textContent=d.erro||"Nao foi possivel conferir.";$("r").hidden=true}
-    else{m.className="msg ok";m.textContent=d.salva_na_conta?"Compra confirmada e salva na sua conta.":"Compra confirmada. Entre em Minha conta para guardá-la lá.";$("k").textContent=d.chave;$("r").hidden=false}
+    else{m.className="msg ok";m.textContent="Compra confirmada.";$("k").textContent=d.chave;$("r").hidden=false}
   }catch(x){m.className="msg err";m.textContent="Sem conexao. Tente de novo."}
   $("b").disabled=false;
 };
