@@ -30,7 +30,6 @@ module.exports = async (req, res) => {
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
     const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 
-    // 30 minutos — bancos rejeitam QR com validade muito curta
     const minutos = 30;
     const expira = new Date(Date.now() + minutos * 60 * 1000).toISOString();
 
@@ -41,7 +40,20 @@ module.exports = async (req, res) => {
       external_reference: pedidoId,
       date_of_expiration: expira,
       notification_url: base + "/api/compra",
-      metadata: { jogo, email, origem: "tss-store-pix" },
+      // Qualidade da integracao MP
+      statement_descriptor: "TSS STORE",
+      binary_mode: true,
+      metadata: { jogo, email, origem: "tss-store-pix", site: base },
+      additional_info: {
+        items: [{
+          id: jogo,
+          title: "Backrooms: Cade a Porta? (TSS)",
+          description: "Chave de ativacao digital",
+          category_id: "digital_games",
+          quantity: 1,
+          unit_price: Number(preco.toFixed(2)),
+        }],
+      },
       payer: {
         email,
         first_name: String(b.nome || "Comprador").slice(0, 40),
