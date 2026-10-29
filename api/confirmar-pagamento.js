@@ -1,6 +1,8 @@
 // Confirma no Mercado Pago se o Pix caiu e emite a chave de ativacao.
 // Nao depende so do webhook: o front chama isso apos status=approved.
 const L = require("./_cofre");
+const A = require("./_auth");
+const R = require("./_release");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -39,7 +41,22 @@ module.exports = async (req, res) => {
     const pedido = String(pay.external_reference || pay.id || id);
     const email = (pay.payer && pay.payer.email) || b.email || "";
     const meta = pay.metadata || {};
-    const jogo = String(meta.jogo || process.env.JOGO_PADRAO || "backrooms").toLowerCase();
+    const jogo = String(meta.jogo || "").toLowerCase();
+    if (!jogo) throw new L.Falha(400, "Pagamento sem jogo associado.", "pedido");
+
+    // Confere no catalogo: jogo existe, e pago e pelo menos o preco (nunca confia so no payment_id).
+    const cat = await R.lerCatalogo();
+    const g = cat && (cat.games || []).find((x) => x.id === jogo);
+    if (!g || !g.protegido) throw new L.Falha(400, "Jogo do pagamento nao encontrado.", "sem_jogo");
+    const preco = Number(g.preco), pago = Number(pay.transaction_amount);
+    if (!Number.isFinite(preco) || preco <= 0 || !(pago + 0.005 >= preco)) {
+      throw new L.Falha(400, "O valor pago nao confere com o preco do jogo. Fale com o suporte com o numero do pedido.", "valor");
+    }
+    // Compra feita logado: so a mesma conta ve a chave aqui (as demais pegam em /resgatar com pedido + e-mail).
+    if (meta.conta) {
+      const sess = A.sessao(req);
+      if (!sess || sess.uid !== meta.conta) throw new L.Falha(403, "Entre na conta que fez a compra para ver a chave.", "login");
+    }
     const idp = pay.payer && pay.payer.identification;
     const nomePag = pay.payer ? [pay.payer.first_name, pay.payer.last_name].filter(Boolean).join(" ") : "";
 
