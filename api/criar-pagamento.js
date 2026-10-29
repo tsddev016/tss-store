@@ -30,8 +30,8 @@ module.exports = async (req, res) => {
     const g = cat && (cat.games || []).find((x) => x.id === jogo);
     if (!g) throw new L.Falha(404, "Jogo nao encontrado.", "sem_jogo");
     if (!g.protegido) throw new L.Falha(400, "Este jogo e gratuito, nao precisa de pagamento.", "gratis");
-    let preco = Number(g.preco);
-    if (!Number.isFinite(preco) || preco <= 0) preco = 0.01;
+    const preco = Number(g.preco);
+    if (!Number.isFinite(preco) || preco < 1) throw new L.Falha(400, "Este jogo ainda nao tem preco definido. Tente de novo mais tarde.", "sem_preco");
 
     // Aceite dos termos (prova de consentimento) + maioridade
     if (String(b.aceite_termos) !== L.TERMOS_VERSAO || b.maior_18 !== true) {
