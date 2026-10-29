@@ -24,7 +24,7 @@
       "launch": "Backrooms_Cade_a_Porta/sistema/executor.py",
       "changelog": "Introdução TSS The Swift Store ao abrir o jogo.",
       "protegido": true,
-      "preco": 1
+      "preco": 4.5
     },
     {
       "id": "backrooms-demo",
