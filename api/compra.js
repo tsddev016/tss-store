@@ -57,7 +57,6 @@ async function processar(req, semSegredo) {
   const pay = await r.json();
   const status = String(pay.status || "").toLowerCase();
   const pedido = String(pay.external_reference || pay.id || id);
-  const email = (pay.payer && pay.payer.email) || "";
   const meta = pay.metadata || {};
   const jogo = String(meta.jogo || "").toLowerCase();
   const pago = Number(pay.transaction_amount);
@@ -97,8 +96,8 @@ async function processar(req, semSegredo) {
       return { salvar: true, resultado: { revogada: false } };
     }
     const x = L.registrarPedido(data, {
-      pedido, email, jogo, origem: "mercadopago", preco: pago, mp_payment: id,
-      conta: meta.conta || "", aceite: meta.aceite || "",
+      pedido, jogo, origem: "mercadopago", preco: pago, mp_payment: id,
+      aceite: meta.aceite || "",
     });
     reg(true, x.novo ? "MP: chave criada." : "MP: pedido ja conhecido.");
     return { salvar: true, resultado: { jogo, novo: x.novo, pedido } };

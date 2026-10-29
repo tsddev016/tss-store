@@ -1,20 +1,17 @@
 /* TSS - aceite dos Termos + links legais. Mude V ao alterar os termos (igual a TERMOS_VERSAO em api/_cofre.js). */
 (function(){
-  var V="2026-10-29",KEY="tss_aceite";
+  var V="2026-10-30",KEY="tss_aceite";
   function aceito(){try{var a=JSON.parse(localStorage.getItem(KEY)||"null");return !!a&&a.v===V}catch(e){return false}}
   function paginaLegal(){return /^\/(termos|privacidade|reembolso)(\.html)?\/?$/.test(location.pathname)}
   function el(t,a,h){var e=document.createElement(t);for(var k in a||{})e[k]=a[k];if(h!=null)e.innerHTML=h;return e}
-  function sincronizar(){
-    if(!aceito())return Promise.resolve();
-    return fetch("/api/conta",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({acao:"aceitar",versao:V})}).catch(function(){});
-  }
+  function sincronizar(){return Promise.resolve()}
   function mostrar(){
     if(document.getElementById("tss-aceite"))return;
     var css=el("link",{rel:"stylesheet",href:"/legal.css"});document.head.appendChild(css);
     var w=el("div",{id:"tss-aceite",role:"dialog"});w.setAttribute("aria-modal","true");w.setAttribute("aria-labelledby","tss-ac-t");
     w.innerHTML='<div class="box"><h2 id="tss-ac-t">Antes de continuar</h2>'
       +'<p>Para usar a TSS The Swift Store, leia e aceite as regras abaixo. Resumo do que importa:</p>'
-      +'<ul><li><b>Seus dados:</b> para comprar pedimos nome completo, CPF e e-mail (nome e CPF vão só ao Mercado Pago; guardamos apenas o e-mail, como código de verificação). Registramos também IP e navegador no aceite, e um código do computador para limitar o uso da chave.</li>'
+      +'<ul><li><b>Seus dados:</b> não pedimos nome, CPF nem e-mail para comprar. A compra gera só duas chaves: a de ativação e a de recuperação. Guardamos também um código do computador para limitar o uso da chave.</li>'
       +'<li><b>Jogo:</b> você compra uma <b>licença de uso pessoal</b>, não o jogo em si. Compartilhar ou revender a chave não é permitido.</li>'
       +'<li><b>Reembolso:</b> 7 dias para desistir da compra online, conforme o Código de Defesa do Consumidor.</li>'
       +'<li><b>Aviso:</b> jogos de terror podem ter sustos e luzes piscantes.</li></ul>'

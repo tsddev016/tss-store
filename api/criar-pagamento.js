@@ -1,9 +1,11 @@
 // Cria pagamento Pix no Mercado Pago e devolve QR code + codigo copia-e-cola.
-// Valido por 30 minutos.
+// Valido por 30 minutos. Sem login e sem dados do comprador: so o jogo e o aceite dos termos.
 const L = require("./_cofre");
 const crypto = require("crypto");
-const A = require("./_auth");
 const R = require("./_release");
+
+// O Mercado Pago exige um e-mail do pagador no Pix. Nao coletamos o do cliente: usamos um e-mail fixo da loja.
+const EMAIL_PAGADOR = process.env.MP_PAYER_EMAIL || "compras@tss-store.vercel.app";
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -18,9 +20,6 @@ module.exports = async (req, res) => {
     const token = process.env.MP_ACCESS_TOKEN;
     if (!token) throw new L.Falha(500, "Mercado Pago ainda nao configurado no servidor.", "config");
 
-    // Com login configurado a compra exige conta; sem login configurado (transicao) segue como visitante.
-    const loginAtivo = Object.keys(A.PROVEDORES).some(A.configurado);
-    const sess = loginAtivo ? A.exigirSessao(req) : null;
     const b = L.corpo(req);
     const jogo = String(b.jogo || "").toLowerCase();
     if (!/^[a-z0-9_-]{1,40}$/.test(jogo)) throw new L.Falha(400, "Jogo invalido.", "pedido");
@@ -38,30 +37,8 @@ module.exports = async (req, res) => {
       throw new L.Falha(400, "Aceite os Termos de Uso, a Politica de Privacidade e a Politica de Reembolso para continuar.", "aceite");
     }
 
-    // Dados do comprador: usa o que veio no formulario; se vier vazio, usa o que ja esta salvo na conta.
-    let conta = null, salvo = {};
-    if (sess) {
-      const { data: dados } = await L.lerChaves();
-      conta = dados.contas[sess.uid];
-      if (!conta) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
-      salvo = {}; // a conta nao guarda dados pessoais
-    }
-    const nome = (String(b.nome || "").trim().replace(/\s+/g, " ") || salvo.nome || "");
-    const cpf = L.normalizarCpf(b.cpf) || salvo.cpf || "";
-    const email = String(b.email || "").trim().toLowerCase();
-    if (nome.length < 5 || nome.length > 80 || !nome.includes(" ")) throw new L.Falha(400, "Informe seu nome completo.", "dados");
-    if (!L.cpfValido(cpf)) throw new L.Falha(400, "CPF invalido.", "dados");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new L.Falha(400, "E-mail invalido.", "dados");
-
-    if (sess) await L.mutar((data) => {
-      const c = data.contas[sess.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
-      c.aceites = c.aceites || [];
-      if (!c.aceites.some((a) => a.versao === L.TERMOS_VERSAO)) c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora(), onde: "checkout", maior_18: true });
-      return { salvar: true, resultado: true };
-    }, "conta: aceite dos termos");
-
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
-    const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+    const pedidoId = "pix-" + Date.now().toString(36) + "-" + crypto.randomBytes(4).toString("hex");
 
     const minutos = 30;
     const expira = new Date(Date.now() + minutos * 60 * 1000).toISOString();
@@ -73,10 +50,9 @@ module.exports = async (req, res) => {
       external_reference: pedidoId,
       date_of_expiration: expira,
       notification_url: base + "/api/compra",
-      // Qualidade da integracao MP
       statement_descriptor: "TSS STORE",
       binary_mode: true,
-      metadata: { jogo, email, origem: "tss-store-pix", site: base, conta: sess ? sess.uid : "", aceite: L.TERMOS_VERSAO },
+      metadata: { jogo, origem: "tss-store-pix", site: base, aceite: L.TERMOS_VERSAO },
       additional_info: {
         items: [{
           id: jogo,
@@ -87,12 +63,7 @@ module.exports = async (req, res) => {
           unit_price: Number(preco.toFixed(2)),
         }],
       },
-      payer: {
-        email,
-        first_name: nome.split(" ")[0].slice(0, 40),
-        last_name: nome.split(" ").slice(1).join(" ").slice(0, 60),
-        identification: { type: "CPF", number: cpf },
-      },
+      payer: { email: EMAIL_PAGADOR },
     };
 
     const idem = crypto.createHash("sha256").update(pedidoId + String(Date.now())).digest("hex").slice(0, 32);
