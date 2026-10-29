@@ -1,5 +1,5 @@
 // Cria pagamento Pix no Mercado Pago e devolve QR code + codigo copia-e-cola.
-// Valido por 3 minutos (date_of_expiration).
+// Valido por 30 minutos.
 const L = require("./_cofre");
 const crypto = require("crypto");
 
@@ -30,11 +30,12 @@ module.exports = async (req, res) => {
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
     const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 
-    // Expira em 3 minutos
-    const expira = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+    // 30 minutos — bancos rejeitam QR com validade muito curta
+    const minutos = 30;
+    const expira = new Date(Date.now() + minutos * 60 * 1000).toISOString();
 
     const body = {
-      transaction_amount: preco,
+      transaction_amount: Number(preco.toFixed(2)),
       description: "TSS - chave de ativacao (" + jogo + ")",
       payment_method_id: "pix",
       external_reference: pedidoId,
@@ -47,7 +48,7 @@ module.exports = async (req, res) => {
       },
     };
 
-    const idem = crypto.createHash("sha256").update(pedidoId).digest("hex").slice(0, 32);
+    const idem = crypto.createHash("sha256").update(pedidoId + String(Date.now())).digest("hex").slice(0, 32);
 
     const r = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -77,6 +78,7 @@ module.exports = async (req, res) => {
       status: data.status,
       preco,
       expira: data.date_of_expiration || expira,
+      minutos,
       qr_code: qr,
       qr_code_base64: qrB64,
       ticket_url: td.ticket_url || "",
