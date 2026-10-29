@@ -17,14 +17,14 @@
         "VISUAL PS1",
         "ONLINE"
       ],
-      "capsule_url": "capsules/backrooms.jpg",
+      "capsule_url": "capsules/backrooms.png",
       "download_url": "",
       "sha256": "40afa2c2487711af09ddd14f17324219580c44838a152376f325711b12e38c5b",
       "size_mb": 22,
       "launch": "Backrooms_Cade_a_Porta/sistema/executor.py",
       "changelog": "Introdução TSS The Swift Store ao abrir o jogo.",
       "protegido": true,
-      "preco": 0
+      "preco": 1
     },
     {
       "id": "backrooms-demo",
