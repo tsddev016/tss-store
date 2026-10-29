@@ -74,7 +74,7 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
 </div>
 <script>
 function qs(k){var m=location.search.match(new RegExp("[?&]"+k+"=([^&]*)"));return m?decodeURIComponent(m[1]):""}
-var jogo=qs("jogo");
+var jogo=qs("jogo");var compradorNome="",compradorEmail="";
 var preco=0,paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false,confirmando=false,salvo=false;
 
 function setPreco(p){document.getElementById("preco").textContent=p<=0?"R$ 0,01 (teste)":"R$ "+p.toFixed(2).replace(".",",")}
@@ -96,8 +96,7 @@ function iniciarFluxo(){
       });return;
     }
     el("entrar").hidden=true;el("form").hidden=false;
-    el("quem").textContent="Comprando como "+(d.conta.nome||"jogador")+" ("+d.conta.provedor+")";
-    if(d.perfil.cpf_mascarado){salvo=true;el("cpfs").textContent="(salvo: "+d.perfil.cpf_mascarado+" — deixe vazio para usar)"}
+    el("quem").textContent="Comprando como "+(d.conta.nome||"jogador")+" ("+d.conta.provedor+")";compradorNome=d.perfil.nome_completo||d.conta.nome||"";compradorEmail=d.perfil.email||"";
   });
 }
 el("aceite").onchange=function(){el("gerar").disabled=!el("aceite").checked};
@@ -154,7 +153,7 @@ function confirmarEEntregar(id){
   fetch("/api/confirmar-pagamento",{
     method:"POST",
     headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({payment_id:id,email:""})
+    body:JSON.stringify({payment_id:id,email:compradorEmail})
   }).then(function(r){return r.json()}).then(function(d){
     if(d.ok&&d.aprovado&&d.chave){
       clearInterval(poll);clearInterval(tick);
@@ -188,7 +187,7 @@ document.getElementById("gerar").onclick=function(){
     method:"POST",
     headers:{"Content-Type":"application/json"},
     credentials:"same-origin",
-    body:JSON.stringify({jogo:jogo,aceite_termos:window.TSS_TERMOS_VERSAO||"2026-10-29",maior_18:el("aceite").checked})
+    body:JSON.stringify({jogo:jogo,nome:compradorNome,email:compradorEmail,aceite_termos:window.TSS_TERMOS_VERSAO||"2026-10-29",maior_18:el("aceite").checked})
   }).then(function(r){return r.json()}).then(function(d){
     if(!d.ok){if(d.codigo==="login"){location.reload();return}throw new Error(d.erro||"Falha ao criar Pix")}
     paymentId=d.payment_id;
