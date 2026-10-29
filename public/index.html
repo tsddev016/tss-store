@@ -42,10 +42,11 @@ h2{font-size:.8rem;letter-spacing:.3em;color:var(--mute);margin:1rem 0}
 .how b{color:var(--gold);display:block;font-size:1.6rem}
 footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3rem;border-top:1px solid var(--line)}
 #msg{color:var(--mute);text-align:center;padding:2rem}
+.preco{font-weight:700;color:var(--gold)}
 </style></head><body>
 <header>
   <div class="brand"><svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><div>TSS<small>THE SWIFT STORE</small></div></div>
-  <nav><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
+  <nav><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="/resgatar">Resgatar chave</a><a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
 </header>
 <section class="hero">
   <svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg>
@@ -65,17 +66,39 @@ footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3r
 </main>
 <footer>© TSS The Swift Store · Desenvolvedor @TS_KKJJ · <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a></footer>
 <script>
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&","<":"<",">":">",'"':""","'":"&#39;"}[c]));
 const safe=u=>/^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:"";
+function fmtPreco(p){const n=Number(p);if(!Number.isFinite(n)||n<=0)return"Grátis (teste)";return"R$ "+n.toFixed(2).replace(".",",")}
+async function comprar(jogo,preco,btn){
+  btn.disabled=true;btn.textContent="Abrindo pagamento…";
+  try{
+    const r=await fetch("/api/criar-pagamento",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jogo,preco})});
+    const d=await r.json();
+    if(!d.ok||!d.init_point)throw new Error(d.erro||"Não consegui criar o pagamento.");
+    location.href=d.init_point;
+  }catch(e){alert(e.message||"Erro no pagamento");btn.disabled=false;btn.textContent=btn.dataset.label}
+}
 fetch("catalog.json",{cache:"no-cache"}).then(r=>r.json()).then(d=>{
   const hub=d.hub||{},b=document.getElementById("hubbtn");
   if(hub.download_url&&safe(hub.download_url)){b.href=safe(hub.download_url);b.classList.remove("off");b.textContent="Baixar o TSS Hub v"+esc(hub.version)}
   const g=d.games||[],grid=document.getElementById("grid");
   document.getElementById("msg").style.display=g.length?"none":"block";
   if(!g.length)document.getElementById("msg").textContent="Nenhum jogo publicado ainda.";
-  grid.innerHTML=g.map(x=>`<article class="card"><img src="${esc(safe(x.capsule_url))}" alt="Capa de ${esc(x.name)}" loading="lazy">
+  grid.innerHTML=g.map(x=>{
+    let acao="";
+    if(x.download_url) acao=`<a class="btn" href="${esc(safe(x.download_url))}">Baixar</a>`;
+    else if(x.protegido){
+      const label=Number(x.preco)>0?"Comprar":"Obter grátis (teste)";
+      acao=`<button class="btn" data-jogo="${esc(x.id)}" data-preco="${esc(x.preco||0)}" data-label="${esc(label)}">${esc(label)}</button>`;
+    } else acao=`<small>Em breve</small>`;
+    const precoTxt=x.protegido?`<span class="preco">${esc(fmtPreco(x.preco))}</span>`:"";
+    return `<article class="card"><img src="${esc(safe(x.capsule_url))}" alt="Capa de ${esc(x.name)}" loading="lazy">
     <div class="b"><h3>${esc(x.name)}</h3><div class="tags">${(x.tags||[]).map(t=>`<span>${esc(t)}</span>`).join("")}</div>
-    <p>${esc(x.description)}</p><div class="meta"><small>v${esc(x.version)}${x.size_mb?" · "+esc(x.size_mb)+" MB":""}</small>
-    ${x.download_url?`<a class="btn" href="${esc(safe(x.download_url))}">Baixar</a>`:`<small>Em breve</small>`}</div></div></article>`).join("");
+    <p>${esc(x.description)}</p><div class="meta"><small>v${esc(x.version)}${x.size_mb?" · "+esc(x.size_mb)+" MB":""}${precoTxt?" · "+precoTxt:""}</small>
+    ${acao}</div></div></article>`;
+  }).join("");
+  grid.querySelectorAll("button[data-jogo]").forEach(btn=>{
+    btn.onclick=()=>comprar(btn.dataset.jogo,Number(btn.dataset.preco)||0,btn);
+  });
 }).catch(()=>{document.getElementById("msg").textContent="Não consegui carregar o catálogo agora."});
 </script></body></html>
