@@ -1,13 +1,12 @@
-// Webhook de compra: o Game Market (ou qualquer loja) avisa aqui quando uma compra e paga/estornada.
-// Autenticacao: segredo WEBHOOK_SECRET no cabecalho "x-webhook-secret", "Authorization: Bearer ..." ou na URL (?segredo=...).
+// Webhook de compra: Game Market (com segredo) ou Mercado Pago (IPN).
 const L = require("./_cofre");
 
 const NOMES = {
   pedido: ["order_id", "orderid", "order_number", "ordernumber", "pedido", "pedido_id", "id_pedido", "numero_pedido",
-    "transaction_id", "transacao", "sale_id", "venda", "purchase_id", "compra"],
+    "transaction_id", "transacao", "sale_id", "venda", "purchase_id", "compra", "external_reference"],
   email: ["email", "buyer_email", "customer_email", "comprador_email", "e-mail"],
   status: ["status", "payment_status", "situacao", "state"],
-  evento: ["event", "evento", "type", "tipo", "topic"],
+  evento: ["event", "evento", "type", "tipo", "topic", "action"],
   produto: ["product_id", "produto_id", "sku", "product_name", "produto", "product", "item", "title", "titulo", "name"],
 };
 const ESTORNO = /(refund|cancel|chargeback|estorn|reembols|disput|revers|expir|fail|refus|recus|negad)/i;
@@ -21,7 +20,6 @@ function porCaminho(obj, caminho) {
   for (const p of String(caminho).split(".")) { if (x == null || typeof x !== "object") return undefined; x = x[p]; }
   return x;
 }
-// Procura um campo pelo nome em qualquer nivel (ate 4), do mais raso para o mais fundo.
 function achar(obj, nome) {
   let fila = [obj];
   for (let nivel = 0; nivel < 5 && fila.length; nivel++) {
@@ -84,10 +82,82 @@ function segredoRecebido(req) {
   return String(h["x-webhook-secret"] || h["x-tss-secret"] || a || q || "");
 }
 
+// ---- Mercado Pago IPN ----
+async function processarMercadoPago(req) {
+  const q = req.query || {};
+  const b = L.corpo(req);
+  const topic = String(q.topic || q.type || b.type || b.topic || "").toLowerCase();
+  const id = String(q.id || q["data.id"] || (b.data && b.data.id) || b.id || "").trim();
+
+  // MP manda GET/POST; respondemos 200 rápido se não for payment
+  if (!id) return { ok: true, ignorado: true, motivo: "sem_id" };
+  if (topic && topic !== "payment" && !topic.includes("payment")) {
+    return { ok: true, ignorado: true, motivo: "topic_" + topic };
+  }
+
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) throw new L.Falha(500, "MP_ACCESS_TOKEN nao configurado.", "config");
+
+  const r = await fetch("https://api.mercadopago.com/v1/payments/" + encodeURIComponent(id), {
+    headers: { Authorization: "Bearer " + token },
+  });
+  if (!r.ok) {
+    if (r.status === 404) return { ok: true, ignorado: true, motivo: "pagamento_nao_encontrado" };
+    throw new L.Falha(502, "Nao consegui consultar o pagamento no Mercado Pago.", "mp");
+  }
+  const pay = await r.json();
+  const status = String(pay.status || "").toLowerCase();
+  const pedido = String(pay.external_reference || pay.id || id);
+  const email = (pay.payer && pay.payer.email) || "";
+  const meta = pay.metadata || {};
+  const jogo = String(meta.jogo || process.env.JOGO_PADRAO || "backrooms").toLowerCase();
+
+  let acao = "ignorar";
+  if (status === "approved") acao = "ativar";
+  else if (["refunded", "charged_back", "cancelled"].includes(status)) acao = "revogar";
+
+  const out = await L.mutar((data) => {
+    const reg = (ok, msg) => {
+      data.log.push({ t: L.agora(), ok, msg, pedido: L.idPedido(pedido), status, evento: "mp.payment", campos: ["mp", status] });
+      data.log = data.log.slice(-20);
+    };
+    if (acao === "ignorar") {
+      reg(true, "MP: status " + status + " (aguardando).");
+      return { salvar: true, resultado: { ignorado: true, status } };
+    }
+    if (acao === "revogar") {
+      const rec = data.pedidos[L.idPedido(pedido)];
+      if (rec && data.keys[rec.h]) {
+        data.keys[rec.h].revogada = true;
+        reg(true, "MP: chave revogada (" + status + ").");
+        return { salvar: true, resultado: { revogada: true } };
+      }
+      reg(true, "MP: estorno sem pedido local.");
+      return { salvar: true, resultado: { revogada: false } };
+    }
+    const x = L.registrarPedido(data, { pedido, email, jogo, origem: "mercadopago" });
+    reg(true, x.novo ? "MP: chave criada." : "MP: pedido ja conhecido.");
+    return { salvar: true, resultado: { chave: x.chave, jogo, novo: x.novo, pedido } };
+  }, "sentinela: pagamento Mercado Pago");
+
+  return Object.assign({ ok: true }, out);
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   try {
+    // Mercado Pago IPN: GET ou POST com topic=payment&id=...
+    const q = req.query || {};
+    const temMp = q.topic || q.type || (req.method === "GET" && q.id) ||
+      (L.corpo(req).action && String(L.corpo(req).action).includes("payment"));
+    if (temMp || (req.method === "GET" && (q.id || q.topic))) {
+      const r = await processarMercadoPago(req);
+      return res.status(200).json(r);
+    }
+
     if (req.method !== "POST") throw new L.Falha(405, "Metodo nao permitido.", "metodo");
+
+    // Game Market / generico com segredo
     const real = process.env.WEBHOOK_SECRET;
     if (!real) throw new L.Falha(500, "Servidor ainda sem WEBHOOK_SECRET configurado.", "config");
     if (!L.seguro(segredoRecebido(req), real)) { await L.sleep(500); throw new L.Falha(401, "Nao autorizado.", "segredo"); }
@@ -111,8 +181,7 @@ module.exports = async (req, res) => {
         data.log = data.log.slice(-20);
       };
       if (acao === "ignorar") { return { salvar: false, resultado: { ignorado: true } }; }
-      if (!pedido) { reg(false, "Nao achei o numero do pedido no aviso. Veja os campos e configure WEBHOOK_CAMPO_PEDIDO."); return { salvar: true, resultado: { erro: "sem_pedido" } }; }
-      if (acao === "ignorar") { reg(true, "Aviso ignorado (pagamento ainda nao confirmado)."); return { salvar: true, resultado: { ignorado: true } }; }
+      if (!pedido) { reg(false, "Nao achei o numero do pedido no aviso."); return { salvar: true, resultado: { erro: "sem_pedido" } }; }
       if (acao === "revogar") {
         const rec = data.pedidos[L.idPedido(pedido)];
         if (rec && data.keys[rec.h]) { data.keys[rec.h].revogada = true; reg(true, "Chave revogada (estorno/cancelamento)."); return { salvar: true, resultado: { revogada: true } }; }
