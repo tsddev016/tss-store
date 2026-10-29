@@ -146,6 +146,7 @@ function cpfValido(c) {
 }
 
 // Cria (ou devolve) a chave de um pedido. Idempotente.
+// Minimizacao: CPF e nome NAO sao gravados; do comprador so fica o e-mail, como codigo HMAC (para recuperar a chave).
 function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, mp_payment, preco, aceite }) {
   const pid = idPedido(pedido);
   if (!pid) throw new Falha(400, "Pedido sem identificacao.", "pedido");
@@ -156,7 +157,6 @@ function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, 
     data.pedidos[pid] = {
       jogo,
       email: email ? hashEmail(email) : "",
-      cpf: cpf ? hashCpf(cpf) : "",
       h,
       criado: agora(),
       origem: origem || "webhook",
@@ -172,7 +172,6 @@ function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, 
     if (aceite && !ja.aceite) ja.aceite = aceite;
     // completa dados se chegar depois
     if (email && !ja.email) ja.email = hashEmail(email);
-    if (cpf && !ja.cpf) ja.cpf = hashCpf(cpf);
   }
   if (!data.keys[h]) {
     data.keys[h] = { jogo, max: MAX_PADRAO, maquinas: [], criada: agora(), origem: origem || "webhook", pedido: pid };

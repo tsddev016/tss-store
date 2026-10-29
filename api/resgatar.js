@@ -1,5 +1,5 @@
-// Comprador informa numero do pedido + CPF e recebe a chave.
-// E-mail continua aceito como fallback (compras antigas / site).
+// Comprador informa numero do pedido + e-mail da compra e recebe a chave.
+// O e-mail so existe gravado como codigo HMAC; CPF e nome nao sao guardados.
 const L = require("./_cofre");
 const A = require("./_auth");
 
@@ -20,48 +20,23 @@ module.exports = async (req, res) => {
 
     const b = L.corpo(req);
     const pid = L.idPedido(b.pedido);
-    const cpf = L.normalizarCpf(b.cpf);
     const email = String(b.email || "").trim();
-    const nome = String(b.nome || "").trim();
 
-    const NAO = new L.Falha(404, "Nao encontramos essa compra. Confira o numero do pedido e o CPF.", "nao_achei");
+    const NAO = new L.Falha(404, "Nao encontramos essa compra. Confira o numero do pedido e o e-mail usado na compra. Se o problema continuar, fale com o suporte.", "nao_achei");
     if (!pid) throw NAO;
-    if (!cpf && !email.includes("@")) throw new L.Falha(400, "Informe o CPF usado na compra (ou o e-mail, se comprou no site).", "dados");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 120) throw new L.Falha(400, "Informe o e-mail usado na compra.", "dados");
 
     const { data } = await L.lerChaves();
     const rec = data.pedidos[pid];
     if (!rec) { await L.sleep(400); throw NAO; }
 
-    // Preferencia: CPF. Fallback: e-mail (pedidos antigos).
-    let ok = false;
-    if (cpf && rec.cpf) {
-      ok = rec.cpf === L.hashCpf(cpf);
-    } else if (cpf && !rec.cpf && !rec.email) {
-      // pedido sem dado de comprador (webhook sem CPF) — libera com CPF valido
-      ok = L.cpfValido(cpf);
-    } else if (email.includes("@") && rec.email) {
-      ok = rec.email === L.hashEmail(email);
-    } else if (!rec.cpf && !rec.email) {
-      // sem vinculo: exige CPF valido
-      ok = cpf && L.cpfValido(cpf);
-    }
-
+    // Confere o e-mail (comparado como codigo HMAC). Pedido sem e-mail gravado nao se resgata sozinho: vai pelo suporte.
+    const ok = !!rec.email && L.seguro(rec.email, L.hashEmail(email));
     if (!ok) { await L.sleep(400); throw NAO; }
 
     const k = data.keys[rec.h];
     if (!k) throw NAO;
     if (k.revogada) throw new L.Falha(403, "Esta compra foi cancelada ou estornada.", "revogada");
-
-    // Se o pedido nao tinha CPF e o comprador informou, grava o hash
-    if (cpf && !rec.cpf) {
-      await L.mutar((d) => {
-        if (d.pedidos[pid] && !d.pedidos[pid].cpf) {
-          d.pedidos[pid].cpf = L.hashCpf(cpf);
-          return { salvar: true, resultado: true };
-        }
-        return { salvar: false, resultado: false };
-      }, "sentinela: vincula CPF ao pedido");
-    }
 
     // Se o comprador esta logado, guarda a compra na conta dele.
     let salvaNaConta = false;

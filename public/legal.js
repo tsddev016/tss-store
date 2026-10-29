@@ -14,7 +14,7 @@
     var w=el("div",{id:"tss-aceite",role:"dialog"});w.setAttribute("aria-modal","true");w.setAttribute("aria-labelledby","tss-ac-t");
     w.innerHTML='<div class="box"><h2 id="tss-ac-t">Antes de continuar</h2>'
       +'<p>Para usar a TSS The Swift Store, leia e aceite as regras abaixo. Resumo do que importa:</p>'
-      +'<ul><li><b>Seus dados:</b> para comprar pedimos nome completo, CPF e e-mail (guardados cifrados na sua conta). Registramos também IP e navegador no aceite, e um código do computador para limitar o uso da chave.</li>'
+      +'<ul><li><b>Seus dados:</b> para comprar pedimos nome completo, CPF e e-mail (nome e CPF vão só ao Mercado Pago; guardamos apenas o e-mail, como código de verificação). Registramos também IP e navegador no aceite, e um código do computador para limitar o uso da chave.</li>'
       +'<li><b>Jogo:</b> você compra uma <b>licença de uso pessoal</b>, não o jogo em si. Compartilhar ou revender a chave não é permitido.</li>'
       +'<li><b>Reembolso:</b> 7 dias para desistir da compra online, conforme o Código de Defesa do Consumidor.</li>'
       +'<li><b>Aviso:</b> jogos de terror podem ter sustos e luzes piscantes.</li></ul>'

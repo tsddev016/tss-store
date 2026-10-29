@@ -13,16 +13,12 @@ code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border
 a{color:var(--ac)}
 </style></head><body><div class="w">
 <h1>Resgatar chave do jogo</h1>
-<p class="mut">Comprou na <b>GameMarket</b> ou no site da TSS? Informe o numero do pedido e o <b>CPF</b> da compra para ver a chave de ativacao.</p>
+<p class="mut">Comprou na <b>GameMarket</b> ou no site da TSS? Informe o numero do pedido e o <b>e-mail</b> usado na compra para ver a chave de ativacao.</p>
 <div class="card">
 <label>Numero do pedido</label>
 <input id="p" autocomplete="off" placeholder="ex.: ABC123 ou numero do pedido">
-<label>CPF</label>
-<input id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
-<label>Nome completo (opcional)</label>
-<input id="nome" autocomplete="name" placeholder="Como no cadastro da compra">
-<label>E-mail (so se comprou no site da TSS)</label>
-<input id="e" type="email" autocomplete="email" placeholder="opcional">
+<label>E-mail da compra</label>
+<input id="e" type="email" autocomplete="email" placeholder="o mesmo e-mail usado na compra">
 <p><button id="b">Ver minha chave</button></p>
 <div class="msg" id="m"></div>
 </div>
@@ -47,8 +43,6 @@ $("b").onclick=async()=>{
   try{
     const r=await fetch("/api/resgatar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       pedido:$("p").value,
-      cpf:$("cpf").value,
-      nome:$("nome").value,
       email:$("e").value
     })});
     const d=await r.json();
