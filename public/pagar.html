@@ -14,6 +14,7 @@ h1{font-size:1.3rem;margin:0 0 6px}.mut{color:var(--mute);font-size:.92rem}
 .timer{font-size:1.4rem;font-weight:700;letter-spacing:.05em;margin:10px 0}
 .timer.warn{color:var(--err)}
 .code{background:#0f0e08;border:1px dashed var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:.75rem;word-break:break-all;text-align:left;max-height:80px;overflow:auto;margin:10px 0}
+.chave{background:#0f0e08;border:1px dashed var(--gold);border-radius:10px;padding:14px;font-family:ui-monospace,Consolas,monospace;font-size:1.15rem;letter-spacing:1px;word-break:break-all;margin:12px 0}
 button{background:var(--gold);color:#14110a;font-weight:800;border:0;border-radius:10px;padding:12px 18px;font-size:1rem;cursor:pointer;width:100%;margin-top:8px}
 button:hover{background:var(--gold2)}button:disabled{opacity:.5}
 button.ghost{background:transparent;color:var(--mute);border:1px solid var(--line)}
@@ -26,7 +27,7 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
   <div class="preco" id="preco"></div>
 
   <div id="form">
-    <label class="mut" style="display:block;text-align:left">Seu e-mail (opcional, para o comprovante)</label>
+    <label class="mut" style="display:block;text-align:left">Seu e-mail (opcional)</label>
     <input class="email" id="email" type="email" placeholder="seu@email.com">
     <button id="gerar">Gerar Pix</button>
   </div>
@@ -40,6 +41,14 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
     <button class="ghost" id="cancelar">Cancelar</button>
   </div>
 
+  <div id="sucesso" hidden>
+    <p class="ok" style="font-weight:700">Pagamento confirmado no Mercado Pago!</p>
+    <p class="mut">Sua chave de ativacao:</p>
+    <div class="chave" id="chave"></div>
+    <button id="copiarChave">Copiar chave</button>
+    <p class="mut" style="margin-top:14px;text-align:left">1. Baixe o <a href="/" id="hubLink">TSS Hub</a><br>2. Instale o jogo no Hub<br>3. Cole a chave quando pedir</p>
+  </div>
+
   <div class="status" id="st"></div>
   <p class="mut" style="margin-top:18px"><a href="/">Voltar a loja</a></p>
 </div>
@@ -47,7 +56,7 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
 function qs(k){var m=location.search.match(new RegExp("[?&]"+k+"=([^&]*)"));return m?decodeURIComponent(m[1]):""}
 var jogo=qs("jogo")||"backrooms";
 var preco=Number(qs("preco"));if(!Number.isFinite(preco)||preco<0)preco=0;
-var paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false;
+var paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false,confirmando=false;
 
 document.getElementById("titulo").textContent=qs("nome")||"Pagamento Pix";
 document.getElementById("preco").textContent=preco<=0?"R$ 0,01 (teste)":"R$ "+preco.toFixed(2).replace(".",",");
@@ -74,17 +83,41 @@ function iniciarTimer(iso){
   },250);
 }
 
+function entregarChave(chave){
+  document.getElementById("pix").hidden=true;
+  document.getElementById("form").hidden=true;
+  document.getElementById("sucesso").hidden=false;
+  document.getElementById("chave").textContent=chave;
+  say("","");
+}
+
+function confirmarEEntregar(id){
+  if(confirmando)return;
+  confirmando=true;
+  say("Confirmando no Mercado Pago e gerando chave…","ok");
+  fetch("/api/confirmar-pagamento",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({payment_id:id,email:document.getElementById("email").value.trim()})
+  }).then(function(r){return r.json()}).then(function(d){
+    if(d.ok&&d.aprovado&&d.chave){
+      clearInterval(poll);clearInterval(tick);
+      entregarChave(d.chave);
+    } else {
+      confirmando=false;
+      say("Pagamento ainda nao consta como aprovado. Aguarde…");
+    }
+  }).catch(function(){confirmando=false;say("Erro ao confirmar. Tentando de novo…","err")});
+}
+
 function iniciarPoll(id){
   if(poll)clearInterval(poll);
   poll=setInterval(function(){
-    if(expirou)return;
+    if(expirou||confirmando)return;
     fetch("/api/status-pagamento?id="+encodeURIComponent(id)).then(function(r){return r.json()}).then(function(d){
       if(!d.ok)return;
-      if(d.aprovado){
-        clearInterval(poll);clearInterval(tick);
-        say("Pagamento confirmado! Redirecionando…","ok");
-        setTimeout(function(){location.href="/resgatar?pago=1&pedido="+encodeURIComponent(d.pedido||"")},1200);
-      } else if(d.expirado){
+      if(d.aprovado) confirmarEEntregar(id);
+      else if(d.expirado){
         clearInterval(poll);clearInterval(tick);
         say("Pix expirado ou cancelado.","err");
         document.getElementById("copiar").disabled=true;
@@ -111,22 +144,24 @@ document.getElementById("gerar").onclick=function(){
     document.getElementById("code").textContent=d.qr_code||"";
     iniciarTimer(d.expira);
     iniciarPoll(d.payment_id);
-    say("Aguardando pagamento…");
+    say("Aguardando pagamento no Mercado Pago…");
   }).catch(function(e){
     say(e.message||"Erro","err");btn.disabled=false;btn.textContent="Gerar Pix";
   });
 };
 
 document.getElementById("copiar").onclick=function(){
-  var t=document.getElementById("code").textContent;
-  if(!t)return;
-  if(navigator.clipboard&&navigator.clipboard.writeText){
-    navigator.clipboard.writeText(t).then(function(){say("Codigo copiado!","ok")}).catch(function(){fallbackCopy(t)});
-  } else fallbackCopy(t);
+  var t=document.getElementById("code").textContent;if(!t)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){say("Codigo copiado!","ok")}).catch(function(){fallbackCopy(t)});
+  else fallbackCopy(t);
+};
+document.getElementById("copiarChave").onclick=function(){
+  var t=document.getElementById("chave").textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){say("Chave copiada!","ok")});
 };
 function fallbackCopy(t){
   var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();
-  try{document.execCommand("copy");say("Codigo copiado!","ok")}catch(e){say("Selecione e copie manualmente.")}
+  try{document.execCommand("copy");say("Codigo copiado!","ok")}catch(e){say("Copie manualmente.")}
   document.body.removeChild(a);
 }
 document.getElementById("cancelar").onclick=function(){location.href="/"};
