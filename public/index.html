@@ -77,13 +77,9 @@ function esc(s){
 }
 function safe(u){return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:""}
 function fmtPreco(p){var n=Number(p);if(!Number.isFinite(n)||n<=0)return"Gratis (teste)";return"R$ "+n.toFixed(2).replace(".",",")}
-function comprar(jogo,preco,btn){
-  btn.disabled=true;btn.textContent="Abrindo pagamento…";
-  fetch("/api/criar-pagamento",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jogo:jogo,preco:preco})})
-  .then(function(r){return r.json()}).then(function(d){
-    if(!d.ok||!d.init_point)throw new Error(d.erro||"Nao consegui criar o pagamento.");
-    location.href=d.init_point;
-  }).catch(function(e){alert(e.message||"Erro");btn.disabled=false;btn.textContent=btn.getAttribute("data-label")||"Comprar"});
+function comprar(jogo,preco,nome){
+  var q="jogo="+encodeURIComponent(jogo)+"&preco="+encodeURIComponent(preco||0)+"&nome="+encodeURIComponent(nome||"");
+  location.href="/pagar.html?"+q;
 }
 fetch("catalog.json",{cache:"no-cache"}).then(function(r){return r.json()}).then(function(d){
   var hub=d.hub||{},b=document.getElementById("hubbtn");
@@ -94,8 +90,8 @@ fetch("catalog.json",{cache:"no-cache"}).then(function(r){return r.json()}).then
   grid.innerHTML=g.map(function(x){
     var acao="";
     if(x.download_url)acao='<a class="btn" href="'+esc(safe(x.download_url))+'">Baixar</a>';
-    else if(x.protegido){var label=Number(x.preco)>0?"Comprar":"Obter gratis (teste)";
-      acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-label="'+esc(label)+'">'+esc(label)+'</button>'}
+    else if(x.protegido){var label=Number(x.preco)>0?"Comprar Pix":"Obter gratis (teste)";
+      acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-nome="'+esc(x.name)+'">'+esc(label)+'</button>'}
     else acao="<small>Em breve</small>";
     var precoTxt=x.protegido?'<span class="preco">'+esc(fmtPreco(x.preco))+'</span>':"";
     var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"")+(precoTxt?" · "+precoTxt:"");
@@ -103,6 +99,6 @@ fetch("catalog.json",{cache:"no-cache"}).then(function(r){return r.json()}).then
     return '<article class="card"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+'" loading="lazy"><div class="b"><h3>'+esc(x.name)+'</h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
   }).join("");
   var buttons=grid.querySelectorAll("button[data-jogo]");
-  for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn)}})(buttons[i])}
+  for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn.getAttribute("data-nome")||"")}})(buttons[i])}
 }).catch(function(){document.getElementById("msg").textContent="Nao consegui carregar o catalogo agora."});
 </script></body></html>
