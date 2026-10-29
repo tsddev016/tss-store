@@ -158,9 +158,9 @@ $("gd").onclick=()=>{const a=el("a",{href:URL.createObjectURL(new Blob([$("go2")
 const tok=()=>($("tk").value.trim()||$("etk").value.trim());
 function gh(path,opt){opt=opt||{};return fetch("https://api.github.com"+path,{...opt,headers:{Authorization:"Bearer "+tok(),Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(opt.headers||{})}})}
 const b64=s=>btoa(unescape(encodeURIComponent(s)));
-const unb64=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,""))));
+const unb64=s=>decodeURIComponent(escape(atob(String(s||"").replace(/\s/g,""))));
 function b64bin(buf){const bytes=new Uint8Array(buf);let bin="";for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin)}
-async function lerCat(){const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`);if(!r.ok)throw new Error("Nao consegui ler o catalogo ("+r.status+"). Confira o token.");const j=await r.json();return{cat:JSON.parse(unb64(j.content)),sha:j.sha}}
+async function lerCat(){const url=`/repos/${OW}/${ST}/contents/public/catalog.json?ref=main`;const r=await gh(url);if(!r.ok)throw new Error("Nao consegui ler o catalogo ("+r.status+"). Confira o token.");const j=await r.json();if(!j||Array.isArray(j)||!j.sha)throw new Error("Resposta inesperada do GitHub ao ler o catalogo.");let txt;if(typeof j.content==="string"&&j.content.length&&j.encoding==="base64")txt=unb64(j.content);else{const rr=await gh(url,{headers:{Accept:"application/vnd.github.raw+json"}});if(!rr.ok)throw new Error("Nao consegui ler o catalogo ("+rr.status+"). Confira o token.");txt=await rr.text()}return{cat:JSON.parse(txt),sha:j.sha}}
 async function enviarCapa(id,img){
  if(img.size>2*1024*1024)throw new Error("Imagem muito grande (max 2 MB).");
  const ext=(img.name.split(".").pop()||"jpg").toLowerCase().replace(/jpeg/,"jpg"),fx=(ext==="png"||ext==="webp")?ext:"jpg",path="public/capsules/"+id+"."+fx;
