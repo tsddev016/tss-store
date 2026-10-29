@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pagar com Pix · TSS</title>
+<meta name="robots" content="noindex">
+<style>
+:root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;--ok:#3ecf8e;--err:#ff5c6c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:400 1rem/1.5 system-ui,Segoe UI,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px}
+a{color:var(--gold)}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;max-width:420px;width:100%;text-align:center}
+h1{font-size:1.3rem;margin:0 0 6px}.mut{color:var(--mute);font-size:.92rem}
+.preco{font-size:1.6rem;font-weight:800;color:var(--gold);margin:12px 0}
+#qrwrap{background:#fff;border-radius:12px;padding:12px;display:inline-block;margin:12px 0}
+#qrwrap img{display:block;width:min(240px,70vw);height:auto}
+.timer{font-size:1.4rem;font-weight:700;letter-spacing:.05em;margin:10px 0}
+.timer.warn{color:var(--err)}
+.code{background:#0f0e08;border:1px dashed var(--line);border-radius:10px;padding:12px;font-family:ui-monospace,Consolas,monospace;font-size:.75rem;word-break:break-all;text-align:left;max-height:80px;overflow:auto;margin:10px 0}
+button{background:var(--gold);color:#14110a;font-weight:800;border:0;border-radius:10px;padding:12px 18px;font-size:1rem;cursor:pointer;width:100%;margin-top:8px}
+button:hover{background:var(--gold2)}button:disabled{opacity:.5}
+button.ghost{background:transparent;color:var(--mute);border:1px solid var(--line)}
+.status{margin-top:14px;min-height:24px}.ok{color:var(--ok)}.err{color:var(--err)}
+.email{width:100%;background:#0f0e08;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;margin:8px 0}
+</style></head><body>
+<div class="card" id="box">
+  <h1 id="titulo">Pagamento Pix</h1>
+  <p class="mut" id="sub">Escaneie o QR Code ou copie o codigo</p>
+  <div class="preco" id="preco"></div>
+
+  <div id="form">
+    <label class="mut" style="display:block;text-align:left">Seu e-mail (opcional, para o comprovante)</label>
+    <input class="email" id="email" type="email" placeholder="seu@email.com">
+    <button id="gerar">Gerar Pix</button>
+  </div>
+
+  <div id="pix" hidden>
+    <div id="qrwrap"><img id="qr" alt="QR Code Pix"></div>
+    <div class="timer" id="timer">03:00</div>
+    <p class="mut">Codigo Pix (copia e cola)</p>
+    <div class="code" id="code"></div>
+    <button id="copiar">Copiar codigo Pix</button>
+    <button class="ghost" id="cancelar">Cancelar</button>
+  </div>
+
+  <div class="status" id="st"></div>
+  <p class="mut" style="margin-top:18px"><a href="/">Voltar a loja</a></p>
+</div>
+<script>
+function qs(k){var m=location.search.match(new RegExp("[?&]"+k+"=([^&]*)"));return m?decodeURIComponent(m[1]):""}
+var jogo=qs("jogo")||"backrooms";
+var preco=Number(qs("preco"));if(!Number.isFinite(preco)||preco<0)preco=0;
+var paymentId=null,expiraEm=0,poll=null,tick=null,expirou=false;
+
+document.getElementById("titulo").textContent=qs("nome")||"Pagamento Pix";
+document.getElementById("preco").textContent=preco<=0?"R$ 0,01 (teste)":"R$ "+preco.toFixed(2).replace(".",",");
+
+function say(t,cls){var s=document.getElementById("st");s.className="status "+(cls||"");s.textContent=t||""}
+function fmt(ms){var s=Math.max(0,Math.ceil(ms/1000));var m=Math.floor(s/60);s=s%60;return (m<10?"0":"")+m+":"+(s<10?"0":"")+s}
+
+function iniciarTimer(iso){
+  expiraEm=iso?new Date(iso).getTime():Date.now()+3*60*1000;
+  var el=document.getElementById("timer");
+  if(tick)clearInterval(tick);
+  tick=setInterval(function(){
+    var left=expiraEm-Date.now();
+    el.textContent=fmt(left);
+    if(left<=30000)el.classList.add("warn");
+    if(left<=0){
+      clearInterval(tick);clearInterval(poll);
+      expirou=true;
+      el.textContent="00:00";
+      say("Pix expirado. Gere um novo para pagar.","err");
+      document.getElementById("qrwrap").style.opacity="0.3";
+      document.getElementById("copiar").disabled=true;
+    }
+  },250);
+}
+
+function iniciarPoll(id){
+  if(poll)clearInterval(poll);
+  poll=setInterval(function(){
+    if(expirou)return;
+    fetch("/api/status-pagamento?id="+encodeURIComponent(id)).then(function(r){return r.json()}).then(function(d){
+      if(!d.ok)return;
+      if(d.aprovado){
+        clearInterval(poll);clearInterval(tick);
+        say("Pagamento confirmado! Redirecionando…","ok");
+        setTimeout(function(){location.href="/resgatar?pago=1&pedido="+encodeURIComponent(d.pedido||"")},1200);
+      } else if(d.expirado){
+        clearInterval(poll);clearInterval(tick);
+        say("Pix expirado ou cancelado.","err");
+        document.getElementById("copiar").disabled=true;
+      }
+    }).catch(function(){});
+  },3000);
+}
+
+document.getElementById("gerar").onclick=function(){
+  var btn=document.getElementById("gerar");btn.disabled=true;btn.textContent="Gerando Pix…";say("");
+  fetch("/api/criar-pagamento",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({jogo:jogo,preco:preco,email:document.getElementById("email").value.trim()})
+  }).then(function(r){return r.json()}).then(function(d){
+    if(!d.ok)throw new Error(d.erro||"Falha ao criar Pix");
+    paymentId=d.payment_id;
+    document.getElementById("form").hidden=true;
+    document.getElementById("pix").hidden=false;
+    if(d.qr_code_base64){
+      var src=d.qr_code_base64.indexOf("data:")===0?d.qr_code_base64:"data:image/png;base64,"+d.qr_code_base64;
+      document.getElementById("qr").src=src;
+    }
+    document.getElementById("code").textContent=d.qr_code||"";
+    iniciarTimer(d.expira);
+    iniciarPoll(d.payment_id);
+    say("Aguardando pagamento…");
+  }).catch(function(e){
+    say(e.message||"Erro","err");btn.disabled=false;btn.textContent="Gerar Pix";
+  });
+};
+
+document.getElementById("copiar").onclick=function(){
+  var t=document.getElementById("code").textContent;
+  if(!t)return;
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(function(){say("Codigo copiado!","ok")}).catch(function(){fallbackCopy(t)});
+  } else fallbackCopy(t);
+};
+function fallbackCopy(t){
+  var a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();
+  try{document.execCommand("copy");say("Codigo copiado!","ok")}catch(e){say("Selecione e copie manualmente.")}
+  document.body.removeChild(a);
+}
+document.getElementById("cancelar").onclick=function(){location.href="/"};
+</script></body></html>
