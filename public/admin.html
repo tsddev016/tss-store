@@ -13,8 +13,10 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#262b38;color:var(--tx)}.tabs button.on{background:var(--ac);color:#111}
 .ok{color:var(--ok)}.err{color:var(--err)}.msg{min-height:20px;margin-top:8px;font-size:14px}.sc{overflow-x:auto}
 code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border:1px dashed var(--ac);border-radius:8px;padding:12px;font-size:20px;letter-spacing:1px;text-align:center;word-break:break-all}
+.chk{display:flex;align-items:center;gap:8px;margin-top:12px}.chk input{width:auto}
+img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-top:8px;display:block}
 </style></head><body><div class="w">
-<h1>TSS · Painel do administrador</h1><p class="mut">Chaves, pedidos da Game Market e publicação de versões.</p>
+<h1>TSS · Painel do administrador</h1><p class="mut">Chaves, pedidos, jogos publicados e publicação de versões.</p>
 <div class="card" id="login"><label>Senha do administrador</label><input id="pw" type="password" autocomplete="current-password"><p><button id="go">Entrar</button></p><div class="msg" id="lm"></div></div>
 <div id="app" hidden>
 <div class="tabs" id="tabs"></div>
@@ -22,29 +24,50 @@ code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border
 <section id="t-chaves"><div class="card"><h2>Chaves</h2><div class="sc"><table id="tc"></table></div></div></section>
 
 <section id="t-pedidos" hidden><div class="card"><h2>Pedidos</h2><div class="sc"><table id="tp"></table></div></div>
-<div class="card"><h2>Registrar pedido manualmente</h2><p class="mut">Para quando a Game Market não avisar sozinha. O comprador usa a página /resgatar com este número e e-mail.</p>
-<div class="row"><div><label>Número do pedido</label><input id="mp"></div><div><label>E-mail do comprador</label><input id="me" type="email"></div><div><label>Jogo</label><select class="jg" id="mj"></select></div></div>
+<div class="card"><h2>Registrar pedido manualmente</h2><p class="mut">Para quando a Game Market nao avisar sozinha. O comprador usa a pagina /resgatar com este numero e e-mail.</p>
+<div class="row"><div><label>Numero do pedido</label><input id="mp"></div><div><label>E-mail do comprador</label><input id="me" type="email"></div><div><label>Jogo</label><select class="jg" id="mj"></select></div></div>
 <p><button id="mb">Registrar</button></p><div class="msg" id="mm"></div></div></section>
 
 <section id="t-gerar" hidden><div class="card"><h2>Gerar chaves avulsas</h2>
 <div class="row"><div><label>Jogo</label><select class="jg" id="gj"></select></div><div><label>Quantidade (1–200)</label><input id="gq" type="number" value="1" min="1" max="200"></div><div><label>Computadores por chave</label><input id="gm" type="number" value="2" min="1" max="10"></div><div><label>Nota (opcional)</label><input id="gn" maxlength="80"></div></div>
 <p><button id="gb">Gerar</button></p><div class="msg" id="gmsg"></div><textarea id="go2" rows="6" readonly hidden></textarea><p><button class="s" id="gd" hidden>Baixar .txt</button></p>
-<p class="mut">As chaves só aparecem agora. O servidor guarda apenas o código de verificação.</p></div></section>
+<p class="mut">As chaves so aparecem agora. O servidor guarda apenas o codigo de verificacao.</p></div></section>
 
-<section id="t-publicar" hidden><div class="card"><h2>Publicar jogo / nova versão</h2>
-<p class="mut">Envia o .zip para o cofre privado e atualiza o catálogo. Precisa do token do GitHub (Painel), que fica só neste navegador.</p>
+<section id="t-jogos" hidden>
+<div class="card"><h2>Editar jogo publicado</h2>
+<p class="mut">Altere nome, preco, gratis/pago, capa, descricao e tags. Precisa do token do GitHub.</p>
+<label>Token do GitHub</label><input id="etk" type="password" autocomplete="off" placeholder="github_pat_…">
+<label>Jogo</label><select id="ej"></select>
+<div class="row">
+ <div><label>Nome</label><input id="en"></div>
+ <div><label>Desenvolvedor</label><input id="ed"></div>
+ <div><label>Preco (R$)</label><input id="ep" type="number" step="0.01" min="0" value="0"></div>
+</div>
+<label class="chk"><input id="eprot" type="checkbox"> Jogo pago (protegido — precisa de chave)</label>
+<p class="mut" id="eprot-hint">Desmarcado = gratis (download direto). Marcado = pago (Mercado Pago + chave).</p>
+<label>Descricao</label><textarea id="edes" rows="3"></textarea>
+<label>Tags (separadas por virgula)</label><input id="etag" placeholder="TERROR, ONLINE, DEMO">
+<label>Changelog</label><input id="ech">
+<label>Capa / banner (jpg ou png)</label><input id="eimg" type="file" accept="image/jpeg,image/png,image/webp">
+<img class="prev" id="eprev" alt="" hidden>
+<p><button id="es">Salvar alteracoes</button></p>
+<div class="msg" id="em"></div></div>
+</section>
+
+<section id="t-publicar" hidden><div class="card"><h2>Publicar jogo / nova versao</h2>
+<p class="mut">Envia o .zip para o cofre privado e atualiza o catalogo. Precisa do token do GitHub.</p>
 <label>Token do GitHub (acesso a tss-store e tss-cofre, Contents: read/write)</label><input id="tk" type="password" autocomplete="off" placeholder="github_pat_…">
-<div class="row"><div><label>Jogo</label><select id="pj"></select></div><div><label>Versão (número maior que a atual)</label><input id="pv" placeholder="14"></div></div>
-<div id="novo" hidden class="row"><div><label>ID (minúsculas, sem espaço)</label><input id="nid"></div><div><label>Nome</label><input id="nn"></div><div><label>Desenvolvedor</label><input id="nd"></div><div><label>Arquivo que abre (launch)</label><input id="nl" placeholder="Pasta/sistema/executor.py"></div></div>
+<div class="row"><div><label>Jogo</label><select id="pj"></select></div><div><label>Versao (numero maior que a atual)</label><input id="pv" placeholder="14"></div></div>
+<div id="novo" hidden class="row"><div><label>ID (minusculas, sem espaco)</label><input id="nid"></div><div><label>Nome</label><input id="nn"></div><div><label>Desenvolvedor</label><input id="nd"></div><div><label>Arquivo que abre (launch)</label><input id="nl" placeholder="Pasta/sistema/executor.py"></div></div>
 <label>O que mudou (changelog)</label><input id="pc"><label>Arquivo .zip do jogo</label><input id="pf" type="file" accept=".zip">
 <p><button id="pb">Publicar</button></p><div class="msg" id="pm"></div></div>
-<div class="card"><h2>Link do instalador do Hub</h2><p class="mut">O link do TSS_Hub_Setup.exe no Mediafire. Aparece na página de resgate.</p>
+<div class="card"><h2>Link do instalador do Hub</h2><p class="mut">O link do TSS Hub no Mediafire. Aparece na pagina de resgate.</p>
 <input id="hu" placeholder="https://www.mediafire.com/…"><p><button id="hb">Salvar link</button></p><div class="msg" id="hm"></div></div></section>
 
-<section id="t-integra" hidden><div class="card"><h2>Integração Game Market</h2>
+<section id="t-integra" hidden><div class="card"><h2>Integracao Game Market</h2>
 <p>URL do webhook (cadastre na Game Market, com o seu segredo no final):</p><div class="k" style="font-size:14px" id="wu"></div>
-<p class="mut">Eventos: marque <b>sale.processing</b> (pagamento confirmado), <b>order.completed</b> e <b>order.cancelled</b>. O segredo é o valor de WEBHOOK_SECRET na Vercel.</p></div>
-<div class="card"><h2>Últimos avisos recebidos</h2><div class="sc"><table id="tl"></table></div></div></section>
+<p class="mut">Eventos: marque <b>sale.processing</b>, <b>order.completed</b> e <b>order.cancelled</b>. O segredo e WEBHOOK_SECRET na Vercel.</p></div>
+<div class="card"><h2>Ultimos avisos recebidos</h2><div class="sc"><table id="tl"></table></div></div></section>
 </div>
 <script>
 const $=i=>document.getElementById(i),OW="tsddev016",ST="tss-store",CO="tss-cofre";
@@ -62,19 +85,41 @@ async function carregar(){
  tabela($("tp"),["Pedido","Jogo","Origem","Criado","Estado"],d.pedidos.map(p=>[p.pedido,p.jogo,p.origem,dt(p.criado),p.revogada?el("span",{className:"err"},"revogado"):el("span",{className:"ok"},"ativo")]));
  tabela($("tl"),["Quando","Resultado","Pedido","Evento/status","Campos recebidos"],d.log.map(l=>[dt(l.t),el("span",{className:l.ok?"ok":"err"},l.msg),l.pedido||"—",(l.evento||"")+" "+(l.status||""),(l.campos||[]).join(", ")]));
 }
+function preencherEdit(){
+ const id=$("ej").value;const g=(CAT.games||[]).find(x=>x.id===id);if(!g)return;
+ $("en").value=g.name||"";$("ed").value=g.developer||"";$("ep").value=Number(g.preco)||0;
+ $("eprot").checked=!!g.protegido;$("edes").value=g.description||"";
+ $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";
+ if(g.capsule_url){$("eprev").src="/"+g.capsule_url.replace(/^\//,"")+"?t="+Date.now();$("eprev").hidden=false}
+ else{$("eprev").hidden=true}
+ $("eprot-hint").textContent=$("eprot").checked
+  ?"Marcado = pago (Mercado Pago + chave de ativacao)."
+  :"Desmarcado = gratis (download direto pelo Hub/site).";
+}
 async function catalogo(){
  const r=await fetch("/catalog.json?"+Date.now(),{cache:"no-store"});CAT=await r.json();
  const opts=(CAT.games||[]).map(g=>el("option",{value:g.id},g.name+" (v"+g.version+")"));
  document.querySelectorAll(".jg").forEach(s=>s.replaceChildren(...(CAT.games||[]).map(g=>el("option",{value:g.id},g.name))));
- $("pj").replaceChildren(...opts,el("option",{value:"__novo"},"➕ Novo jogo…"));$("hu").value=(CAT.hub&&CAT.hub.download_url)||"";
+ $("pj").replaceChildren(...opts,el("option",{value:"__novo"},"+ Novo jogo…"));
+ $("ej").replaceChildren(...(CAT.games||[]).map(g=>el("option",{value:g.id},g.name+" ("+g.id+")")));
+ $("hu").value=(CAT.hub&&CAT.hub.download_url)||"";
  $("novo").hidden=$("pj").value!=="__novo";
+ preencherEdit();
 }
 $("pj").onchange=()=>{$("novo").hidden=$("pj").value!=="__novo"};
-const TABS=[["chaves","Chaves"],["pedidos","Pedidos"],["gerar","Gerar chaves"],["publicar","Publicar"],["integra","Integração"]];
+$("ej").onchange=preencherEdit;
+$("eprot").onchange=()=>{
+ $("eprot-hint").textContent=$("eprot").checked
+  ?"Marcado = pago (Mercado Pago + chave de ativacao)."
+  :"Desmarcado = gratis (download direto pelo Hub/site).";
+};
+const TABS=[["chaves","Chaves"],["pedidos","Pedidos"],["gerar","Gerar chaves"],["jogos","Jogos"],["publicar","Publicar"],["integra","Integracao"]];
 function aba(n){TABS.forEach(([i])=>{$("t-"+i).hidden=i!==n});[...$("tabs").children].forEach((b,j)=>b.className=TABS[j][0]===n?"on":"")}
 async function entrar(){SEN=$("pw").value;try{await api("entrar");sessionStorage.setItem("tss_adm",SEN);$("login").hidden=true;$("app").hidden=false;
  $("tabs").replaceChildren(...TABS.map(([i,t])=>{const b=el("button",{},t);b.onclick=()=>aba(i);return b}));aba("chaves");
- $("wu").textContent=location.origin+"/api/compra?segredo=SEU_SEGREDO";$("tk").value=localStorage.getItem("tss_gh")||"";await catalogo();await carregar()}
+ $("wu").textContent=location.origin+"/api/compra?segredo=SEU_SEGREDO";
+ const ghTok=localStorage.getItem("tss_gh")||"";$("tk").value=ghTok;$("etk").value=ghTok;
+ await catalogo();await carregar()}
  catch(e){say("lm",e.message,"err")}}
 $("go").onclick=entrar;$("pw").onkeydown=e=>{if(e.key==="Enter")entrar()};
 if(sessionStorage.getItem("tss_adm")){$("pw").value=sessionStorage.getItem("tss_adm");entrar()}
@@ -84,13 +129,55 @@ $("gb").onclick=async()=>{try{const d=await api("gerar",{jogo:$("gj").value,qtd:
  $("go2").value=d.chaves.join("\n");$("go2").hidden=false;$("gd").hidden=false;say("gmsg",d.chaves.length+" chave(s) gerada(s). Copie agora.","ok");await carregar()}catch(e){say("gmsg",e.message,"err")}};
 $("gd").onclick=()=>{const a=el("a",{href:URL.createObjectURL(new Blob([$("go2").value+"\n"],{type:"text/plain"})),download:"chaves-"+$("gj").value+".txt"});a.click()};
 
-/* ---- publicar (direto no GitHub, com o token deste navegador) ---- */
-const tok=()=>$("tk").value.trim();
+const tok=()=>($("tk").value.trim()||$("etk").value.trim());
 function gh(path,opt){opt=opt||{};return fetch("https://api.github.com"+path,{...opt,headers:{Authorization:"Bearer "+tok(),Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",...(opt.headers||{})}})}
-const b64=s=>btoa(String.fromCharCode(...new TextEncoder().encode(s)));
-const unb64=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\n/g,"")),c=>c.charCodeAt(0)));
-async function lerCat(){const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`);if(!r.ok)throw new Error("Não consegui ler o catálogo ("+r.status+"). Confira o token.");const j=await r.json();return{cat:JSON.parse(unb64(j.content)),sha:j.sha}}
-async function gravarCat(cat,sha,msg){cat.updated=new Date().toISOString().slice(0,10);const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:b64(JSON.stringify(cat,null,2)+"\n"),sha})});if(!r.ok)throw new Error("Não consegui gravar o catálogo ("+r.status+").")}
+const b64=s=>btoa(unescape(encodeURIComponent(s)));
+const unb64=s=>decodeURIComponent(escape(atob(s.replace(/\n/g,""))));
+function b64bin(buf){const bytes=new Uint8Array(buf);let bin="";for(let i=0;i<bytes.length;i++)bin+=String.fromCharCode(bytes[i]);return btoa(bin)}
+async function lerCat(){const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`);if(!r.ok)throw new Error("Nao consegui ler o catalogo ("+r.status+"). Confira o token.");const j=await r.json();return{cat:JSON.parse(unb64(j.content)),sha:j.sha}}
+async function gravarCat(cat,sha,msg){cat.updated=new Date().toISOString().slice(0,10);const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:b64(JSON.stringify(cat,null,2)+"\n"),sha})});if(!r.ok)throw new Error("Nao consegui gravar o catalogo ("+r.status+").")}
+
+/* ---- editar jogo ---- */
+$("es").onclick=async()=>{
+ const b=$("es");b.disabled=true;
+ try{
+  localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub.");
+  const id=$("ej").value;if(!id)throw new Error("Escolha um jogo.");
+  say("em","Salvando…");
+  const{cat,sha}=await lerCat();const g=(cat.games||[]).find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");
+  g.name=$("en").value.trim()||g.name;
+  g.developer=$("ed").value.trim();
+  g.preco=Math.max(0,Number($("ep").value)||0);
+  g.protegido=!!$("eprot").checked;
+  g.description=$("edes").value.trim();
+  g.tags=$("etag").value.split(",").map(t=>t.trim()).filter(Boolean);
+  g.changelog=$("ech").value.trim()||g.changelog;
+  if(g.protegido){g.download_url=""}
+  else if(!g.download_url||g.download_url.includes("mediafire")){
+   g.download_url="https://tss-store.vercel.app/api/baixar-gratis?jogo="+encodeURIComponent(id);
+  }
+  const img=$("eimg").files[0];
+  if(img){
+   if(img.size>2*1024*1024)throw new Error("Imagem muito grande (max 2 MB).");
+   const ext=(img.name.split(".").pop()||"jpg").toLowerCase().replace(/jpeg/,"jpg");
+   const path="public/capsules/"+id+"."+(ext==="png"||ext==="webp"?ext:"jpg");
+   say("em","Enviando capa…");
+   const ab=await img.arrayBuffer();
+   let fileSha=null;
+   const gr=await gh(`/repos/${OW}/${ST}/contents/${path}`);
+   if(gr.ok){const gj=await gr.json();fileSha=gj.sha}
+   const put=await gh(`/repos/${OW}/${ST}/contents/${path}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    message:"Capa do jogo "+id,content:b64bin(ab),sha:fileSha||undefined
+   })});
+   if(!put.ok)throw new Error("Falha ao enviar capa ("+put.status+").");
+   g.capsule_url="capsules/"+id+"."+(ext==="png"||ext==="webp"?ext:"jpg");
+  }
+  await gravarCat(cat,sha,"Edita jogo "+id);
+  say("em","Salvo. O site atualiza em ~30 segundos.","ok");
+  await catalogo();
+ }catch(e){say("em",e.message,"err")}b.disabled=false;
+};
+
 $("hb").onclick=async()=>{try{localStorage.setItem("tss_gh",tok());say("hm","Salvando…");const{cat,sha}=await lerCat();cat.hub=cat.hub||{};cat.hub.download_url=$("hu").value.trim();await gravarCat(cat,sha,"Link do instalador do Hub");say("hm","Salvo. O site atualiza em ~30 segundos.","ok")}catch(e){say("hm",e.message,"err")}};
 const vNum=v=>String(v).split(".").map(n=>parseInt(n,10)||0);
 function maior(a,b){const x=vNum(a),y=vNum(b);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d>0}return false}
@@ -98,23 +185,24 @@ $("pb").onclick=async()=>{const b=$("pb");b.disabled=true;
  try{
   localStorage.setItem("tss_gh",tok());if(!tok())throw new Error("Cole o token do GitHub.");
   const f=$("pf").files[0];if(!f)throw new Error("Escolha o arquivo .zip.");
-  const ver=$("pv").value.trim();if(!/^[0-9]+(\.[0-9]+)*$/.test(ver))throw new Error("Versão inválida (use números, ex.: 14 ou 1.2).");
-  say("pm","Lendo catálogo…");const{cat,sha}=await lerCat();cat.games=cat.games||[];
+  const ver=$("pv").value.trim();if(!/^[0-9]+(\.[0-9]+)*$/.test(ver))throw new Error("Versao invalida (use numeros, ex.: 14 ou 1.2).");
+  say("pm","Lendo catalogo…");const{cat,sha}=await lerCat();cat.games=cat.games||[];
   let g,id=$("pj").value;
-  if(id==="__novo"){id=$("nid").value.trim().toLowerCase();if(!/^[a-z0-9_-]{1,40}$/.test(id))throw new Error("ID do jogo inválido.");if(cat.games.some(x=>x.id===id))throw new Error("Já existe jogo com esse ID.");
+  if(id==="__novo"){id=$("nid").value.trim().toLowerCase();if(!/^[a-z0-9_-]{1,40}$/.test(id))throw new Error("ID do jogo invalido.");if(cat.games.some(x=>x.id===id))throw new Error("Ja existe jogo com esse ID.");
    if(!$("nn").value.trim()||!$("nl").value.trim())throw new Error("Preencha nome e arquivo que abre.");
-   g={id,name:$("nn").value.trim(),version:"0",developer:$("nd").value.trim(),description:"",tags:[],capsule_url:"",download_url:"",sha256:"",size_mb:0,launch:$("nl").value.trim(),changelog:"",protegido:true};cat.games.push(g)}
-  else{g=cat.games.find(x=>x.id===id);if(!g)throw new Error("Jogo não encontrado.");if(!maior(ver,g.version))throw new Error("A versão precisa ser maior que a atual (v"+g.version+"), senão o Hub dos compradores não avisa.")}
+   g={id,name:$("nn").value.trim(),version:"0",developer:$("nd").value.trim(),description:"",tags:[],capsule_url:"",download_url:"",sha256:"",size_mb:0,launch:$("nl").value.trim(),changelog:"",protegido:true,preco:0};cat.games.push(g)}
+  else{g=cat.games.find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");if(!maior(ver,g.version))throw new Error("A versao precisa ser maior que a atual (v"+g.version+"), senao o Hub dos compradores nao avisa.")}
   say("pm","Calculando SHA-256…");const h=await crypto.subtle.digest("SHA-256",await f.arrayBuffer());const sh=[...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,"0")).join("");
-  const tag=id+"-v"+ver;say("pm","Criando versão "+tag+" no cofre…");
+  const tag=id+"-v"+ver;say("pm","Criando versao "+tag+" no cofre…");
   const rr=await gh(`/repos/${OW}/${CO}/releases`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({tag_name:tag,name:g.name+" v"+ver,draft:false,prerelease:false})});
-  if(rr.status===422)throw new Error("A versão "+tag+" já existe no cofre. Use um número maior.");if(!rr.ok)throw new Error("Não consegui criar a versão ("+rr.status+"). Token precisa de acesso ao tss-cofre.");
+  if(rr.status===422)throw new Error("A versao "+tag+" ja existe no cofre. Use um numero maior.");if(!rr.ok)throw new Error("Nao consegui criar a versao ("+rr.status+"). Token precisa de acesso ao tss-cofre.");
   const rel=await rr.json();
   await new Promise((ok,no)=>{const x=new XMLHttpRequest();x.open("POST",`https://uploads.github.com/repos/${OW}/${CO}/releases/${rel.id}/assets?name=${encodeURIComponent(tag+".zip")}`);
    x.setRequestHeader("Authorization","Bearer "+tok());x.setRequestHeader("Content-Type","application/zip");x.setRequestHeader("Accept","application/vnd.github+json");
    x.upload.onprogress=e=>{if(e.lengthComputable)say("pm","Enviando… "+Math.round(e.loaded/e.total*100)+"%")};x.onload=()=>x.status<300?ok():no(new Error("Falha no envio ("+x.status+")"));x.onerror=()=>no(new Error("Falha de rede no envio."));x.send(f)});
-  g.version=ver;g.sha256=sh;g.size_mb=Math.max(1,Math.round(f.size/1048576));g.changelog=$("pc").value.trim()||g.changelog;g.protegido=true;g.download_url="";
-  say("pm","Atualizando catálogo…");await gravarCat(cat,sha,"Publica "+tag);
-  say("pm","Publicado: "+g.name+" v"+ver+". Em ~30 segundos o Hub dos compradores avisa a atualização.","ok");await catalogo();
+  g.version=ver;g.sha256=sh;g.size_mb=Math.max(1,Math.round(f.size/1048576));g.changelog=$("pc").value.trim()||g.changelog;
+  if(g.protegido!==false){g.protegido=true;g.download_url=""}
+  say("pm","Atualizando catalogo…");await gravarCat(cat,sha,"Publica "+tag);
+  say("pm","Publicado: "+g.name+" v"+ver+". Em ~30 segundos o Hub avisa a atualizacao.","ok");await catalogo();
  }catch(e){say("pm",e.message,"err")}b.disabled=false};
 </script></div></body></html>
