@@ -174,7 +174,7 @@ var ultimo="",seoFeito=false;
 function pintar(d){
   var hub=d.hub||{},b=document.getElementById("hubbtn");
   if(hub.download_url&&safe(hub.download_url)){b.href=safe(hub.download_url);b.classList.remove("off");b.textContent="Baixar o TSS Hub v"+hub.version}
-  var g=d.games||[],grid=document.getElementById("grid"),msg=document.getElementById("msg");
+  var g=(d.games||[]).filter(function(x){return x.disponivel===true}),grid=document.getElementById("grid"),msg=document.getElementById("msg");
   if(!g.length){grid.innerHTML="";msg.style.display="block";msg.textContent="Nenhum jogo publicado ainda.";return}
   msg.style.display="none";
   grid.innerHTML=g.map(card).join("");
