@@ -29,12 +29,11 @@ module.exports = async (req, res) => {
       const { data } = await L.lerChaves();
       const c = data.contas[s.uid];
       if (!c) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
-      const pii = c.pii ? L.decifrar(c.pii) : {};
       const ult = (c.aceites || []).slice(-1)[0];
       return res.status(200).json({
         ok: true,
-        conta: { nome: c.nome, email_login: c.email_login, avatar: c.avatar, provedor: c.provedor, criada: c.criada },
-        perfil: { nome_completo: pii.nome || "", email: pii.email || c.email_login || "", cpf_mascarado: mascararCpf(pii.cpf) },
+        conta: { nome: s.nome || "", email_login: "", avatar: s.avatar || "", provedor: c.provedor, criada: c.criada },
+        perfil: { nome_completo: "", email: "", cpf_mascarado: "" },
         aceite: { versao_atual: L.TERMOS_VERSAO, versao_aceita: ult ? ult.versao : "", em: ult ? ult.em : "" },
         compras: compras(data, s.uid, await nomesDeJogos()),
       });
@@ -45,28 +44,16 @@ module.exports = async (req, res) => {
     const acao = String(b.acao || "");
 
     if (acao === "perfil") {
-      const nome = String(b.nome_completo || "").trim().replace(/\s+/g, " ");
-      const cpf = L.normalizarCpf(b.cpf);
-      const email = String(b.email || "").trim().toLowerCase();
-      if (nome.length < 5 || nome.length > 80 || !nome.includes(" ")) throw new L.Falha(400, "Informe seu nome completo.", "dados");
-      if (!L.cpfValido(cpf)) throw new L.Falha(400, "CPF invalido.", "dados");
-      if (!emailOk(email)) throw new L.Falha(400, "E-mail invalido.", "dados");
-      await L.mutar((data) => {
-        const c = data.contas[s.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
-        c.pii = L.cifrar({ nome, cpf, email, atualizado: L.agora() });
-        return { salvar: true, resultado: true };
-      }, "conta: dados pessoais");
-      return res.status(200).json({ ok: true });
+      throw new L.Falha(410, "A TSS nao guarda mais nome, CPF ou e-mail na conta. Voce informa esses dados so na hora da compra.", "sem_perfil");
     }
 
     if (acao === "aceitar") {
       if (String(b.versao) !== L.TERMOS_VERSAO) throw new L.Falha(400, "Versao dos termos desatualizada. Recarregue a pagina.", "aceite");
-      const ip = L.ipDe(req), ua = String(req.headers["user-agent"] || "").slice(0, 160);
       await L.mutar((data) => {
         const c = data.contas[s.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
         c.aceites = c.aceites || [];
         if (c.aceites.some((a) => a.versao === L.TERMOS_VERSAO)) return { salvar: false, resultado: true };
-        c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora(), ev: L.cifrar({ ip, ua }) });
+        c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora() });
         return { salvar: true, resultado: true };
       }, "conta: aceite dos termos");
       return res.status(200).json({ ok: true });
@@ -92,11 +79,10 @@ module.exports = async (req, res) => {
     if (acao === "exportar") {
       const { data } = await L.lerChaves();
       const c = data.contas[s.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
-      const pii = c.pii ? L.decifrar(c.pii) : {};
-      const aceites = (c.aceites || []).map((a) => ({ versao: a.versao, em: a.em, registro: a.ev ? L.decifrar(a.ev) : {} }));
+      const aceites = (c.aceites || []).map((a) => ({ versao: a.versao, em: a.em }));
       return res.status(200).json({ ok: true, exportado_em: L.agora(),
-        conta: { provedor: c.provedor, nome: c.nome, email_login: c.email_login, criada: c.criada, ultimo_login: c.ultimo_login },
-        dados_pessoais: pii, aceites, compras: compras(data, s.uid, await nomesDeJogos()),
+        conta: { provedor: c.provedor, criada: c.criada, ultimo_login: c.ultimo_login },
+        dados_pessoais: {}, aceites, compras: compras(data, s.uid, await nomesDeJogos()),
         reembolsos: Object.values(data.reembolsos).filter((x) => x.conta === s.uid) });
     }
 
@@ -105,7 +91,7 @@ module.exports = async (req, res) => {
       await L.mutar((data) => {
         delete data.contas[s.uid];
         // Compras ficam so como registro tecnico (hash de CPF/e-mail), pelo prazo legal de defesa. Sem nome e sem vinculo com a conta.
-        for (const r of Object.values(data.pedidos)) if (r.conta === s.uid) { delete r.conta; r.nome = ""; }
+        for (const r of Object.values(data.pedidos)) if (r.conta === s.uid) { delete r.conta; delete r.nome; }
         for (const x of Object.values(data.reembolsos)) if (x.conta === s.uid) { delete x.conta; }
         return { salvar: true, resultado: true };
       }, "conta: exclusao a pedido do titular");

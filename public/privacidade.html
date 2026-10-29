@@ -19,11 +19,11 @@
 <h2>2. Quais dados coletamos e por quê</h2>
 <div class="wrap"><table>
 <tr><th>Dados</th><th>Quando</th><th>Finalidade</th><th>Base legal (LGPD, art. 7º)</th></tr>
-<tr><td>ID do provedor, nome, e-mail e foto (Google, Discord ou GitHub)</td><td>Ao entrar</td><td>Criar e manter a conta</td><td>Execução de contrato (V)</td></tr>
-<tr><td>Nome completo, CPF e e-mail</td><td>Ao comprar ou ao salvar seus dados</td><td>Emitir e identificar a compra, enviar a chave, suporte, prevenção a fraude</td><td>Execução de contrato (V); legítimo interesse na prevenção à fraude (IX); cumprimento de obrigação legal (II)</td></tr>
+<tr><td>Código do seu login (derivado do ID no Google, Discord ou GitHub; sem nome, e-mail ou foto gravados)</td><td>Ao entrar</td><td>Criar e manter a conta e ligar suas compras a ela</td><td>Execução de contrato (V)</td></tr>
+<tr><td>Nome completo, CPF e e-mail (repassados ao Mercado Pago; aqui ficam só como código de verificação)</td><td>Ao comprar</td><td>Identificar a compra, permitir recuperar a chave, prevenção a fraude</td><td>Execução de contrato (V); legítimo interesse na prevenção à fraude (IX); cumprimento de obrigação legal (II)</td></tr>
 <tr><td>Pedido, jogo, valor, data, status, chave</td><td>Na compra</td><td>Entrega, reembolso, defesa em disputas</td><td>Contrato (V); exercício regular de direitos (VI); obrigação legal (II)</td></tr>
-<tr><td>Versão dos termos aceita, data/hora, IP e navegador</td><td>No aceite e no checkout</td><td>Comprovar consentimento e aceite</td><td>Exercício regular de direitos (VI); legítimo interesse (IX)</td></tr>
-<tr><td>Dados enviados pela Game Market (pedido, e-mail, CPF, nome)</td><td>Compra na Game Market</td><td>Liberar sua chave</td><td>Contrato (V)</td></tr>
+<tr><td>Versão dos termos aceita e data/hora</td><td>No aceite e no checkout</td><td>Comprovar consentimento e aceite</td><td>Exercício regular de direitos (VI); legítimo interesse (IX)</td></tr>
+<tr><td>Dados enviados pela Game Market (pedido, e-mail, CPF, nome; guardamos só o número do pedido e códigos de verificação)</td><td>Compra na Game Market</td><td>Liberar sua chave</td><td>Contrato (V)</td></tr>
 <tr><td>Código técnico do computador</td><td>Ao ativar a chave no jogo/Hub</td><td>Limitar o uso ao número de computadores da chave</td><td>Contrato (V); legítimo interesse antipirataria (IX)</td></tr>
 <tr><td>IP e registros técnicos de acesso</td><td>Ao usar o site e a API</td><td>Segurança, estabilidade, evitar abuso</td><td>Legítimo interesse (IX); obrigação legal (II)</td></tr>
 </table></div>
@@ -43,7 +43,7 @@
 <p>Alguns desses prestadores (GitHub, Vercel, Google, Discord) podem tratar dados fora do Brasil, em especial nos Estados Unidos. Isso ocorre para executar o serviço e com as garantias previstas no art. 33 da LGPD, como cláusulas contratuais e políticas dos próprios prestadores.</p>
 
 <h2>5. Como protegemos</h2>
-<p>Nome, CPF e e-mail da conta são guardados <b>cifrados</b> (AES-256-GCM). Nos registros de pedido, o CPF e o e-mail ficam apenas como código de verificação (hash). O acesso é restrito ao administrador, e as conexões usam HTTPS. Nenhum sistema é 100% seguro; em caso de incidente que possa gerar risco relevante, comunicaremos você e a ANPD, conforme o art. 48 da LGPD.</p>
+<p>Não guardamos nome, CPF nem e-mail em texto: nos registros de pedido, o CPF e o e-mail ficam apenas como código de verificação (hash com chave secreta), e a conta guarda só um código do seu login. O acesso é restrito ao administrador, e as conexões usam HTTPS. Nenhum sistema é 100% seguro; em caso de incidente que possa gerar risco relevante, comunicaremos você e a ANPD, conforme o art. 48 da LGPD.</p>
 
 <h2>6. Por quanto tempo guardamos</h2>
 <ul>
@@ -55,14 +55,14 @@
 
 <h2>7. Seus direitos (art. 18 da LGPD)</h2>
 <p>Você pode pedir: confirmação de que tratamos seus dados; acesso; correção; anonimização, bloqueio ou eliminação de dados desnecessários; portabilidade; informação sobre com quem compartilhamos; revogação de consentimento; e revisão de decisões automatizadas.</p>
-<p>Em <a href="/conta">Minha conta</a> você pode <b>corrigir</b> seus dados, <b>baixar</b> tudo em um arquivo e <b>excluir</b> a conta. Outros pedidos: fale com o suporte; respondemos em até 15 dias. Ao excluir a conta, apagamos seus dados pessoais; mantemos apenas o registro técnico mínimo da compra (sem nome e sem ligação com a conta) pelo prazo legal de defesa.</p>
+<p>Em <a href="/conta">Minha conta</a> você pode <b>baixar</b> tudo em um arquivo e <b>excluir</b> a conta. Outros pedidos: fale com o suporte; respondemos em até 15 dias. Ao excluir a conta, apagamos seus dados pessoais; mantemos apenas o registro técnico mínimo da compra (sem nome e sem ligação com a conta) pelo prazo legal de defesa.</p>
 <p>Você também pode reclamar à Autoridade Nacional de Proteção de Dados (ANPD).</p>
 
 <h2>8. Decisões automatizadas</h2>
 <p>O Sentinela pode negar ou revogar chaves automaticamente em casos como estorno, cancelamento, limite de computadores ou fraude. Você pode pedir revisão humana pelo suporte (art. 20 da LGPD).</p>
 
 <h2>9. Cookies e armazenamento no navegador</h2>
-<p>Usamos apenas o que é <b>essencial</b>: um cookie de sessão para manter você logado (HttpOnly, até 30 dias), um cookie temporário durante o login e um registro local do seu aceite dos termos. Não usamos cookies de publicidade nem rastreadores de terceiros.</p>
+<p>Usamos apenas o que é <b>essencial</b>: um cookie de sessão para manter você logado (HttpOnly, até 30 dias; leva seu nome e foto do login só para exibir na tela, sem gravá-los em nosso servidor), um cookie temporário durante o login e um registro local do seu aceite dos termos. Não usamos cookies de publicidade nem rastreadores de terceiros.</p>
 
 <h2>10. Menores de idade</h2>
 <p>Contas e compras são para maiores de 18 anos, ou menores assistidos por responsável legal. Se identificarmos dados de menor sem a autorização devida, eliminaremos.</p>

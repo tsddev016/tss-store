@@ -57,7 +57,6 @@ module.exports = async (req, res) => {
       await L.mutar((d) => {
         if (d.pedidos[pid] && !d.pedidos[pid].cpf) {
           d.pedidos[pid].cpf = L.hashCpf(cpf);
-          if (nome) d.pedidos[pid].nome = nome.slice(0, 80);
           return { salvar: true, resultado: true };
         }
         return { salvar: false, resultado: false };

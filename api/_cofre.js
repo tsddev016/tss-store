@@ -9,6 +9,14 @@ const TERMOS_VERSAO = "2026-10-29"; // mude junto com public/legal.js quando alt
 const ALFA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // 32 simbolos, sem 0/O/1/I
 
 const sha = (s) => crypto.createHash("sha256").update(s).digest("hex");
+// Codigo de verificacao COM CHAVE SECRETA (HMAC): sem a chave nao da para descobrir CPF/e-mail testando combinacoes.
+const hmacHex = (tag, s) => {
+  const seg = process.env.KEY_SECRET;
+  if (!seg) throw new Falha(500, "Servidor ainda sem KEY_SECRET configurada.", "config");
+  return crypto.createHmac("sha256", seg).update(tag + ":" + s).digest("hex");
+};
+// Conta minima: o id da conta e so um codigo derivado do ID do login (nada de nome, e-mail ou foto no banco).
+const idConta = (prov, id) => String(prov) + "_" + hmacHex("conta", String(prov) + ":" + String(id)).slice(0, 32);
 const norm = (k) => String(k || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const agora = () => new Date().toISOString();
@@ -116,7 +124,7 @@ function chaveDoPedido(pedido, jogo) {
 }
 
 const idPedido = (p) => String(p == null ? "" : p).trim().toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 64);
-const hashEmail = (e) => sha(String(e || "").trim().toLowerCase());
+const hashEmail = (e) => hmacHex("email", String(e || "").trim().toLowerCase());
 
 // CPF: so digitos, 11 caracteres
 const soDigitos = (s) => String(s || "").replace(/\D/g, "");
@@ -126,7 +134,7 @@ function normalizarCpf(c) {
 }
 function hashCpf(c) {
   const d = normalizarCpf(c);
-  return d ? sha("cpf:" + d) : "";
+  return d ? hmacHex("cpf", d) : "";
 }
 function cpfValido(c) {
   const d = normalizarCpf(c);
@@ -149,7 +157,6 @@ function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, 
       jogo,
       email: email ? hashEmail(email) : "",
       cpf: cpf ? hashCpf(cpf) : "",
-      nome: nome ? String(nome).trim().slice(0, 80) : "",
       h,
       criado: agora(),
       origem: origem || "webhook",
@@ -166,7 +173,6 @@ function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, 
     // completa dados se chegar depois
     if (email && !ja.email) ja.email = hashEmail(email);
     if (cpf && !ja.cpf) ja.cpf = hashCpf(cpf);
-    if (nome && !ja.nome) ja.nome = String(nome).trim().slice(0, 80);
   }
   if (!data.keys[h]) {
     data.keys[h] = { jogo, max: MAX_PADRAO, maquinas: [], criada: agora(), origem: origem || "webhook", pedido: pid };
@@ -181,4 +187,4 @@ function responder(res, e) {
 
 module.exports = { Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
   chaveAleatoria, chaveDoPedido, idPedido, cifrar, decifrar, ipDe, TERMOS_VERSAO, hashEmail, hashCpf, normalizarCpf, cpfValido, soDigitos,
-  registrarPedido, responder, MAX_PADRAO };
+  registrarPedido, responder, MAX_PADRAO, idConta };

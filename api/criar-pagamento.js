@@ -44,23 +44,21 @@ module.exports = async (req, res) => {
       const { data: dados } = await L.lerChaves();
       conta = dados.contas[sess.uid];
       if (!conta) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
-      salvo = conta.pii ? L.decifrar(conta.pii) : {};
+      salvo = {}; // a conta nao guarda dados pessoais
     }
     const nome = (String(b.nome || "").trim().replace(/\s+/g, " ") || salvo.nome || "");
     const cpf = L.normalizarCpf(b.cpf) || salvo.cpf || "";
-    const email = (String(b.email || "").trim().toLowerCase() || salvo.email || (conta && conta.email_login) || "");
+    const email = String(b.email || "").trim().toLowerCase();
     if (nome.length < 5 || nome.length > 80 || !nome.includes(" ")) throw new L.Falha(400, "Informe seu nome completo.", "dados");
     if (!L.cpfValido(cpf)) throw new L.Falha(400, "CPF invalido.", "dados");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new L.Falha(400, "E-mail invalido.", "dados");
 
-    const ip = L.ipDe(req), ua = String(req.headers["user-agent"] || "").slice(0, 160);
     if (sess) await L.mutar((data) => {
       const c = data.contas[sess.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
-      c.pii = L.cifrar({ nome, cpf, email, atualizado: L.agora() });
       c.aceites = c.aceites || [];
-      if (!c.aceites.some((a) => a.versao === L.TERMOS_VERSAO)) c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora(), ev: L.cifrar({ ip, ua, onde: "checkout" }) });
+      if (!c.aceites.some((a) => a.versao === L.TERMOS_VERSAO)) c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora(), onde: "checkout", maior_18: true });
       return { salvar: true, resultado: true };
-    }, "conta: dados do comprador e aceite");
+    }, "conta: aceite dos termos");
 
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
     const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);

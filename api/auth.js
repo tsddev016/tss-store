@@ -44,12 +44,11 @@ module.exports = async (req, res) => {
 
       const token = await A.trocarCodigo(prov, String(q.code));
       const p = await A.perfil(prov, token);
-      const uid = prov + ":" + p.id;
+      const uid = L.idConta(prov, p.id);
       await L.mutar((data) => {
         const c = data.contas[uid] || (data.contas[uid] = { provedor: prov, criada: L.agora(), aceites: [] });
-        c.nome = String(p.nome || "").slice(0, 80);
-        c.email_login = String(p.email || "").slice(0, 120);
-        c.avatar = p.avatar || "";
+        // Conta minima: so o codigo do login. Nome, e-mail e foto nao ficam gravados (so no cookie do navegador).
+        delete c.nome; delete c.email_login; delete c.avatar;
         c.ultimo_login = L.agora();
         return { salvar: true, resultado: true };
       }, "conta: login");
