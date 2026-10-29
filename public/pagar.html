@@ -45,7 +45,7 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
     <input class="email" id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
     <label class="lab" for="email">E-mail</label>
     <input class="email" id="email" type="email" autocomplete="email" placeholder="seu@email.com">
-    <p class="mut" style="font-size:.8rem;text-align:left">Usamos esses dados para emitir a compra, evitar fraude e suporte. Ficam cifrados na sua conta (<a href="/privacidade" target="_blank" rel="noopener">Privacidade</a>).</p>
+    <p class="mut" style="font-size:.8rem;text-align:left">Usamos esses dados para emitir a compra, evitar fraude e suporte. Nome e CPF são enviados ao Mercado Pago só para processar o Pix e não ficam guardados aqui (<a href="/privacidade" target="_blank" rel="noopener">Privacidade</a>).</p>
     <label class="chk"><input type="checkbox" id="aceite"><span>Li e aceito os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>, a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a> e a <a href="/reembolso" target="_blank" rel="noopener">Política de Reembolso</a> (7 dias para desistir). Tenho 18 anos ou mais, ou autorização do meu responsável.</span></label>
     <button id="gerar" disabled>Gerar Pix</button>
   </div>
@@ -61,10 +61,19 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
 
   <div id="sucesso" hidden>
     <p class="ok" style="font-weight:700">Pagamento confirmado no Mercado Pago!</p>
-    <p class="mut">Sua chave de ativacao:</p>
-    <div class="chave" id="chave"></div>
-    <button id="copiarChave">Copiar chave</button>
-    <p class="mut" style="margin-top:14px;text-align:left">Sua chave também ficou salva em <a href="/conta">Minha conta</a>.<br><br>1. Baixe o <a href="/" id="hubLink">TSS Hub</a><br>2. Instale o jogo no Hub<br>3. Cole a chave quando pedir</p>
+    <div id="recBox" hidden>
+      <p style="font-weight:700;margin:12px 0 4px">Primeiro, guarde sua chave de recuperação</p>
+      <p class="mut" style="text-align:left">Ela aparece só agora. Se você perder a chave de ativação ou precisar de reembolso, é com ela que a compra é encontrada. Sem ela, a recuperação depende do suporte.</p>
+      <div class="chave" id="rec"></div>
+      <button id="copiarRec">Copiar chave de recuperação</button>
+      <label class="chk"><input type="checkbox" id="guardei"><span>Guardei minha chave de recuperação em um lugar seguro.</span></label>
+    </div>
+    <div id="ativBox">
+      <p class="mut">Sua chave de ativacao:</p>
+      <div class="chave" id="chave"></div>
+      <button id="copiarChave">Copiar chave</button>
+      <p class="mut" style="margin-top:14px;text-align:left">Sua chave também ficou salva em <a href="/conta">Minha conta</a>.<br><br>1. Baixe o <a href="/" id="hubLink">TSS Hub</a><br>2. Instale o jogo no Hub<br>3. Cole a chave quando pedir</p>
+    </div>
   </div>
 
   <div class="status" id="st"></div>
@@ -124,13 +133,28 @@ function iniciarTimer(iso){
   },250);
 }
 
-function entregarChave(chave){
+function entregarChave(chave,rec){
   document.getElementById("pix").hidden=true;
   document.getElementById("form").hidden=true;
   document.getElementById("sucesso").hidden=false;
   document.getElementById("chave").textContent=chave;
+  if(rec){
+    // Chave de recuperação obrigatória: a chave de ativação só aparece depois do "guardei".
+    document.getElementById("rec").textContent=rec;
+    document.getElementById("recBox").hidden=false;
+    document.getElementById("ativBox").hidden=true;
+    window.onbeforeunload=function(e){e.preventDefault();e.returnValue="";return ""};
+  }
   say("","");
 }
+document.getElementById("guardei").onchange=function(){
+  document.getElementById("ativBox").hidden=!this.checked;
+  window.onbeforeunload=this.checked?null:window.onbeforeunload;
+};
+document.getElementById("copiarRec").onclick=function(){
+  var t=document.getElementById("rec").textContent;
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(t).then(function(){say("Chave de recuperação copiada!","ok")});
+};
 
 function confirmarEEntregar(id){
   if(confirmando)return;
@@ -143,7 +167,7 @@ function confirmarEEntregar(id){
   }).then(function(r){return r.json()}).then(function(d){
     if(d.ok&&d.aprovado&&d.chave){
       clearInterval(poll);clearInterval(tick);
-      entregarChave(d.chave);
+      entregarChave(d.chave,d.recuperacao);
     } else {
       confirmando=false;
       say("Pagamento ainda nao consta como aprovado. Aguarde…");

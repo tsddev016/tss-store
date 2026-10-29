@@ -87,29 +87,6 @@ async function mutar(fn, msg) {
   throw new Falha(503, "Muitos acessos ao mesmo tempo. Tente de novo em alguns segundos.", "ocupado");
 }
 
-// Dados pessoais (nome, CPF, e-mail) ficam cifrados (AES-256-GCM) com DADOS_KEY antes de ir para o cofre.
-function chaveDados() {
-  const s = process.env.DADOS_KEY;
-  if (!s) throw new Falha(500, "Servidor ainda sem DADOS_KEY configurada.", "config");
-  return crypto.createHash("sha256").update("tss-dados:" + s).digest();
-}
-function cifrar(obj) {
-  const iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv("aes-256-gcm", chaveDados(), iv);
-  const enc = Buffer.concat([c.update(JSON.stringify(obj), "utf8"), c.final()]);
-  return "v1." + iv.toString("base64") + "." + c.getAuthTag().toString("base64") + "." + enc.toString("base64");
-}
-function decifrar(txt) {
-  const [v, iv, tag, enc] = String(txt || "").split(".");
-  if (v !== "v1" || !enc) return {};
-  try {
-    const d = crypto.createDecipheriv("aes-256-gcm", chaveDados(), Buffer.from(iv, "base64"));
-    d.setAuthTag(Buffer.from(tag, "base64"));
-    return JSON.parse(Buffer.concat([d.update(Buffer.from(enc, "base64")), d.final()]).toString("utf8"));
-  } catch (e) { return {}; }
-}
-const ipDe = (req) => String(((req.headers && req.headers["x-forwarded-for"]) || "").split(",")[0] || "").trim().slice(0, 60);
-
 const formatar = (k) => k.match(/.{1,5}/g).join("-");
 function chaveAleatoria() {
   let k = ""; for (let i = 0; i < 20; i++) k += ALFA[crypto.randomInt(32)];
@@ -123,6 +100,40 @@ function chaveDoPedido(pedido, jogo) {
   return formatar(k);
 }
 
+// Chave de recuperacao (so pedidos do Pix do site): o comprador guarda; no banco fica SO o hash (rec_h).
+// E derivada do pedido com KEY_SECRET, entao nao precisa ser gravada em lugar nenhum.
+const REC_JANELA_MS = 15 * 60 * 1000; // se a resposta se perder, o mesmo pagamento ainda mostra a chave por 15 min
+function codigoRecuperacao(pedido) {
+  const seg = process.env.KEY_SECRET;
+  if (!seg) throw new Falha(500, "Servidor ainda sem KEY_SECRET configurada.", "config");
+  const d = crypto.createHmac("sha256", seg).update(`recuperacao:${idPedido(pedido)}`).digest();
+  let k = ""; for (let i = 0; i < 20; i++) k += ALFA[d[i] % 32];
+  return "REC-" + formatar(k);
+}
+// Aceita com ou sem "REC-", maiusculas/minusculas, com ou sem tracos.
+function normRec(c) {
+  const n = norm(c);
+  return n.length === 20 ? "REC" + n : n;
+}
+const hashRecuperacao = (c) => sha(normRec(c));
+function acharPorRecuperacao(data, codigo) {
+  const h = hashRecuperacao(codigo);
+  for (const [pid, r] of Object.entries((data && data.pedidos) || {})) {
+    if (r.rec_h && seguro(r.rec_h, h)) return { pid, rec: r };
+  }
+  return null;
+}
+// Devolve a chave de recuperacao na primeira entrega (e de novo so dentro da janela). Marca rec_visto.
+function entregarRecuperacao(data, pedido) {
+  const pid = idPedido(pedido);
+  const r = data.pedidos[pid];
+  if (!r || !r.rec_h) return null;
+  const visto = r.rec_visto ? Date.parse(r.rec_visto) : 0;
+  if (visto && Date.now() - visto > REC_JANELA_MS) return null;
+  if (!visto) r.rec_visto = agora();
+  return codigoRecuperacao(pid);
+}
+
 const idPedido = (p) => String(p == null ? "" : p).trim().toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 64);
 const hashEmail = (e) => hmacHex("email", String(e || "").trim().toLowerCase());
 
@@ -131,10 +142,6 @@ const soDigitos = (s) => String(s || "").replace(/\D/g, "");
 function normalizarCpf(c) {
   const d = soDigitos(c);
   return d.length === 11 ? d : "";
-}
-function hashCpf(c) {
-  const d = normalizarCpf(c);
-  return d ? hmacHex("cpf", d) : "";
 }
 function cpfValido(c) {
   const d = normalizarCpf(c);
@@ -146,8 +153,9 @@ function cpfValido(c) {
 }
 
 // Cria (ou devolve) a chave de um pedido. Idempotente.
-// Minimizacao: CPF e nome NAO sao gravados; do comprador so fica o e-mail, como codigo HMAC (para recuperar a chave).
-function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, mp_payment, preco, aceite }) {
+// Minimizacao: nome e CPF nunca chegam aqui; do comprador so fica o e-mail, como codigo HMAC (para o resgate).
+// Pedidos do Pix tambem guardam o HASH da chave de recuperacao (rec_h), nunca a chave em si.
+function registrarPedido(data, { pedido, email, jogo, origem, conta, mp_payment, preco, aceite }) {
   const pid = idPedido(pedido);
   if (!pid) throw new Falha(400, "Pedido sem identificacao.", "pedido");
   const chave = chaveDoPedido(pid, jogo);
@@ -161,6 +169,7 @@ function registrarPedido(data, { pedido, email, cpf, nome, jogo, origem, conta, 
       criado: agora(),
       origem: origem || "webhook",
     };
+    if (origem === "mercadopago") data.pedidos[pid].rec_h = hashRecuperacao(codigoRecuperacao(pid));
     if (conta) data.pedidos[pid].conta = conta;
     if (mp_payment) data.pedidos[pid].mp_payment = String(mp_payment);
     if (preco) data.pedidos[pid].preco = Number(preco);
@@ -185,5 +194,6 @@ function responder(res, e) {
 }
 
 module.exports = { Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
-  chaveAleatoria, chaveDoPedido, idPedido, cifrar, decifrar, ipDe, TERMOS_VERSAO, hashEmail, hashCpf, normalizarCpf, cpfValido, soDigitos,
+  chaveAleatoria, chaveDoPedido, idPedido, TERMOS_VERSAO, hashEmail, normalizarCpf, cpfValido,
+  codigoRecuperacao, hashRecuperacao, acharPorRecuperacao, entregarRecuperacao,
   registrarPedido, responder, MAX_PADRAO, idConta };

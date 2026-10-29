@@ -3,6 +3,7 @@
 const L = require("./_cofre");
 const A = require("./_auth");
 const R = require("./_release");
+const D = require("./_discord");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -57,15 +58,11 @@ module.exports = async (req, res) => {
       const sess = A.sessao(req);
       if (!sess || sess.uid !== meta.conta) throw new L.Falha(403, "Entre na conta que fez a compra para ver a chave.", "login");
     }
-    const idp = pay.payer && pay.payer.identification;
-    const nomePag = pay.payer ? [pay.payer.first_name, pay.payer.last_name].filter(Boolean).join(" ") : "";
 
     const out = await L.mutar((data) => {
       const x = L.registrarPedido(data, {
         pedido,
         email,
-        cpf: idp && idp.number ? idp.number : "",
-        nome: nomePag,
         jogo,
         origem: "mercadopago",
         conta: meta.conta || "",
@@ -83,8 +80,13 @@ module.exports = async (req, res) => {
         campos: ["payment_id", id],
       });
       data.log = data.log.slice(-20);
-      return { salvar: true, resultado: { chave: x.chave, jogo, novo: x.novo, pedido } };
+      // Chave de recuperacao: mostrada ao comprador agora (so o hash fica guardado).
+      const recuperacao = L.entregarRecuperacao(data, pedido);
+      return { salvar: true, resultado: { chave: x.chave, jogo, novo: x.novo, pedido, recuperacao } };
     }, "sentinela: confirma Pix");
+
+    // Aviso no Discord (opcional, sem dado pessoal). So quando este pedido acabou de nascer.
+    if (out.novo) await D.avisarCompra({ jogo, nomeJogo: g.name, pedido: out.pedido, preco: pago });
 
     return res.status(200).json({
       ok: true,
@@ -94,6 +96,7 @@ module.exports = async (req, res) => {
       jogo: out.jogo,
       pedido: out.pedido,
       novo: out.novo,
+      recuperacao: out.recuperacao || null,
     });
   } catch (e) {
     return L.responder(res, e);

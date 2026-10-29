@@ -74,7 +74,7 @@ module.exports = async (req, res) => {
       const { data } = await L.lerChaves();
       const rec = data.pedidos[pid];
       if (!rec) throw new L.Falha(404, "Pedido nao encontrado.", "sem_pedido");
-      let aviso = "Chave revogada. Este pedido nao veio do Pix do site: devolva o dinheiro pela Game Market ou manualmente.";
+      let aviso = "Chave revogada. Este pedido nao veio do Pix do site: devolva o dinheiro manualmente.";
       if (rec.mp_payment) {
         const tk = process.env.MP_ACCESS_TOKEN;
         if (!tk) throw new L.Falha(500, "Mercado Pago nao configurado.", "config");
