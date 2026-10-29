@@ -40,6 +40,25 @@
       "changelog": "",
       "protegido": false,
       "preco": 0
+    },
+    {
+      "id": "ashfall",
+      "name": "Backrooms: Cadê a Porta? DEMO",
+      "version": "4",
+      "developer": "TS_KKJJ",
+      "description": "Jogo de guerra",
+      "tags": [
+        "TIRO",
+        "FPS"
+      ],
+      "capsule_url": "capsules/ashfall.png",
+      "download_url": "",
+      "sha256": "0dab92562b23ef142b2013a47c666fdfb9b4be0cbf9c8a2b73c43bdb8761d151",
+      "size_mb": 1,
+      "launch": "Ashfall_Instalador_v4/sistema/executor.py",
+      "changelog": "",
+      "protegido": true,
+      "preco": 1.25
     }
   ]
 }
