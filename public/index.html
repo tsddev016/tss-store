@@ -92,7 +92,31 @@ footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3r
 footer a{color:var(--gold);text-decoration:none}
 footer a:hover{text-decoration:underline}
 .preco{font-weight:700;color:var(--gold)}
-a.ph{display:block}.tl{text-decoration:none}.tl:hover{color:var(--gold)}
+.card[data-ver]{cursor:pointer}.tl{background:none;border:0;color:inherit;font:inherit;padding:0;cursor:pointer;text-align:left}.card:hover .tl{color:var(--gold)}
+#modal{position:fixed;inset:0;z-index:50;overflow-y:auto;background:rgba(5,4,2,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:max(1rem,env(safe-area-inset-top,0px)) 1rem max(1rem,env(safe-area-inset-bottom,0px))}
+#modal[hidden]{display:none}
+.mbox{position:relative;max-width:1000px;margin:2vh auto;background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:1.4rem clamp(1rem,3vw,2rem) 2rem}
+#mx{position:sticky;top:0;float:right;z-index:2;width:2.4rem;height:2.4rem;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--text);font-size:1.4rem;line-height:1;cursor:pointer}
+#mx:hover{border-color:var(--gold2);color:var(--gold)}
+.top{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:1.6rem;align-items:start;clear:both}
+@media(max-width:780px){.top{grid-template-columns:1fr}}
+.cap img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;border:1px solid var(--line);background:#1d1a0b;display:block}
+.side{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:1.3rem;display:flex;flex-direction:column;gap:.8rem}
+.side h1{margin:0;font-size:1.6rem;line-height:1.2}
+.side dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:.3rem .9rem;font-size:.9rem}
+.side dt{color:var(--mute)}.side dd{margin:0}
+.side .price{font-size:1.5rem;font-weight:800;color:var(--gold)}
+.side .btn{text-align:center}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.4rem}
+.box p{margin:0 0 .8rem;color:var(--mute)}.box p:last-child{margin:0}
+.box ul{margin:0;padding-left:1.2rem;color:var(--mute)}
+.vid{position:relative;aspect-ratio:16/9;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#000}
+.vid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:.8rem}
+.shots img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;transition:border-color .15s}
+.shots a:hover img{border-color:var(--gold2)}
+.log{border-left:2px solid var(--line);padding-left:1rem;margin:0 0 1rem}
+.log b{color:var(--gold)}
 .news{display:grid;gap:.9rem}.news article{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.3rem}.news h3{margin:.2rem 0 .4rem;font-size:1.05rem}.news p{margin:0;color:var(--mute)}.news time{font-size:.75rem;color:var(--gold);letter-spacing:.12em}.news a{color:var(--gold);text-decoration:none;font-size:.9rem}
 @media (max-width:560px){.btn.ghost{margin:.6rem 0 0}.hero{padding-top:3rem}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
@@ -141,6 +165,8 @@ a.ph{display:block}.tl{text-decoration:none}.tl:hover{color:var(--gold)}
 
 <footer>© TSS The Swift Store · Desenvolvedor @TS_KKJJ · <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a><br><a href="/termos">Termos de Uso</a> · <a href="/privacidade">Privacidade</a> · <a href="/reembolso">Reembolso (7 dias)</a> · <a href="/conta">Minha conta</a></footer>
 
+<div id="modal" hidden><div class="mbox" role="dialog" aria-modal="true" aria-label="Página do jogo"><button type="button" id="mx" aria-label="Fechar">×</button><div id="mc"></div></div></div>
+
 <script>
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c==='"'?"&quot;":"&#39;"})}
 function safe(u){return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:""}
@@ -150,16 +176,11 @@ function comprar(jogo,preco,nome){
   location.href="/pagar.html?"+q;
 }
 function card(x){
-  var acao;
-  if(x.download_url){acao='<a class="btn" href="'+esc(safe(x.download_url))+'">Baixar</a>'}
-  else if(!x.protegido&&x.disponivel){acao='<a class="btn" href="/api/baixar-gratis?jogo='+encodeURIComponent(x.id)+'">Baixar</a>'}
-  else if(x.protegido){var label=Number(x.preco)>0?"Comprar Pix":"Obter grátis (teste)";
-    acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-nome="'+esc(x.name)+'">'+esc(label)+'</button>'}
-  else{acao="<small>Em breve</small>"}
   var badge=x.protegido?fmtPreco(x.preco):((x.download_url||x.disponivel)?"GRÁTIS":"EM BREVE");
   var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"");
   var tags=(x.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
-  return '<article class="card"><a class="ph" href="/jogo?id='+encodeURIComponent(x.id)+'"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"><span class="badge">'+esc(badge)+'</span></a><div class="b"><h3><a class="tl" href="/jogo?id='+encodeURIComponent(x.id)+'">'+esc(x.name)+'</a></h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
+  var resumo=partirDescricao(x).txt[0]||x.name;
+  return '<article class="card" data-ver="'+esc(x.id)+'"><div class="ph"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"><span class="badge">'+esc(badge)+'</span></div><div class="b"><h3><button type="button" class="tl">'+esc(x.name)+'</button></h3><div class="tags">'+tags+'</div><p>'+esc(resumo)+'</p><div class="meta"><small>'+meta+'</small><span class="btn">Ver jogo</span></div></div></article>';
 }
 function seo(g){
   try{
@@ -175,6 +196,66 @@ function seo(g){
     document.head.appendChild(s);
   }catch(e){}
 }
+
+var JOGOS=[],ultFoco=null;
+function lista(v){return Array.isArray(v)?v:(typeof v==="string"&&v.trim()?v.split(/\r?\n/).filter(Boolean):[])}
+function ytId(u){var m=String(u||"").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/);return m?m[1]:""}
+/* A descricao do catalogo mistura texto e requisitos: separa o bloco que comeca com Recomendado/Requisitos/Minimo. */
+function partirDescricao(g){
+  var paras=String(g.description||"").split(/\n\s*\n/).map(function(p){return p.trim()}).filter(Boolean),txt=[],req=[];
+  paras.forEach(function(p){
+    var linhas=p.split(/\n/).filter(function(l){return !/^#\s/.test(l.trim())}).map(function(l){return l.trim()}).filter(Boolean);
+    if(!linhas.length)return;
+    if(/^(recomendado|requisitos|m[ií]nimo)/i.test(linhas[0])){req=req.concat(linhas)}else{txt.push(linhas.join(" "))}
+  });
+  return{txt:txt,req:lista(g.requisitos).length?lista(g.requisitos):req};
+}
+function acaoJogo(g){
+  if(g.download_url)return'<a class="btn" href="'+esc(safe(g.download_url))+'">Baixar</a>';
+  if(!g.protegido&&g.disponivel)return'<a class="btn" href="/api/baixar-gratis?jogo='+encodeURIComponent(g.id)+'">Baixar grátis</a>';
+  if(g.protegido)return'<button type="button" class="btn" id="buy">'+(Number(g.preco)>0?"Comprar Pix":"Obter grátis (teste)")+'</button>';
+  return"<small>Em breve</small>";
+}
+function notasVersao(g){
+  var c=g.changelog;
+  if(Array.isArray(c)&&c.length)return c.map(function(x){return'<div class="log"><b>v'+esc(x.version||"")+'</b>'+(x.date?' · <small>'+esc(x.date)+'</small>':"")+'<br>'+esc(x.notes||x.notas||"")+'</div>'}).join("");
+  if(typeof c==="string"&&c.trim())return'<div class="log"><b>v'+esc(g.version)+'</b><br>'+esc(c).replace(/\n/g,"<br>")+'</div>';
+  return"<p>Ainda sem notas de versão. Acompanhe as novidades na comunidade do Discord.</p>";
+}
+function abrir(id){
+  var g=JOGOS.filter(function(x){return x.id===id})[0];if(!g)return;
+  var d=partirDescricao(g),tags=(g.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
+  var vid=ytId(g.trailer),shots=lista(g.screenshots).map(safe).filter(Boolean);
+  var h='<div class="top"><div class="cap"><img src="'+esc(safe(g.capsule_url))+'" alt="'+esc(g.name)+' - capa do jogo" width="640" height="360"></div>'
+   +'<aside class="side"><h1>'+esc(g.name)+'</h1><div class="tags">'+tags+'</div>'
+   +'<div class="price">'+(g.protegido?fmtPreco(g.preco):"Grátis")+'</div>'
+   +'<dl><dt>Versão</dt><dd>'+esc(g.version)+'</dd>'+(g.size_mb?'<dt>Tamanho</dt><dd>'+esc(g.size_mb)+' MB</dd>':"")+'<dt>Desenvolvedor</dt><dd>'+esc(g.developer||"TS_KKJJ")+'</dd><dt>Plataforma</dt><dd>PC (Windows) via TSS Hub</dd></dl>'
+   +acaoJogo(g)+'</aside></div>';
+  if(vid)h+='<h2>TRAILER</h2><div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+vid+'" title="Trailer de '+esc(g.name)+'" loading="lazy" allow="encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>';
+  if(shots.length)h+='<h2>CAPTURAS DE TELA</h2><div class="shots">'+shots.map(function(u,i){return'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="Captura de tela '+(i+1)+' de '+esc(g.name)+'" loading="lazy"></a>'}).join("")+'</div>';
+  h+='<h2>SOBRE O JOGO</h2><div class="box">'+(d.txt.length?d.txt.map(function(p){return"<p>"+esc(p)+"</p>"}).join(""):"<p>Descrição em breve.</p>")+'</div>';
+  if(d.req.length)h+='<h2>REQUISITOS DO PC</h2><div class="box"><ul>'+d.req.map(function(l){return"<li>"+esc(l)+"</li>"}).join("")+'</ul></div>';
+  h+='<h2>NOTAS DE VERSÃO</h2><div class="box">'+notasVersao(g)+'</div>';
+  if(/terror/i.test((g.tags||[]).join(" ")))h+='<p style="font-size:.85rem;color:var(--mute);margin-top:1.2rem">Aviso: jogos de terror podem ter sustos, sons altos e luzes piscantes. Pessoas com epilepsia fotossensível devem consultar um médico antes de jogar.</p>';
+  document.getElementById("mc").innerHTML=h;
+  var b=document.getElementById("buy");if(b)b.onclick=function(){comprar(g.id,Number(g.preco)||0,g.name)};
+  ultFoco=document.activeElement;
+  var m=document.getElementById("modal");m.hidden=false;m.scrollTop=0;document.body.style.overflow="hidden";
+  document.getElementById("mx").focus();
+}
+function fechar(){
+  var m=document.getElementById("modal");if(m.hidden)return;
+  m.hidden=true;document.getElementById("mc").innerHTML="";document.body.style.overflow="";
+  if(ultFoco&&ultFoco.focus)try{ultFoco.focus()}catch(e){}
+}
+document.addEventListener("click",function(e){
+  var m=document.getElementById("modal");
+  if(e.target===m||e.target.id==="mx"){fechar();return}
+  if(!m.hidden)return;
+  var t=e.target.closest&&e.target.closest("[data-ver]");
+  if(t){e.preventDefault();abrir(t.getAttribute("data-ver"))}
+});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")fechar()});
 var ultimo="",seoFeito=false;
 function pintar(d){
   var hub=d.hub||{},b=document.getElementById("hubbtn");
@@ -182,7 +263,7 @@ function pintar(d){
   var g=(d.games||[]).filter(function(x){return x.disponivel===true}),grid=document.getElementById("grid"),msg=document.getElementById("msg");
   if(!g.length){grid.innerHTML="";msg.style.display="block";msg.textContent="Nenhum jogo publicado ainda.";return}
   msg.style.display="none";
-  grid.innerHTML=g.map(card).join("");
+  JOGOS=g;grid.innerHTML=g.map(card).join("");
   var buttons=grid.querySelectorAll("button[data-jogo]");
   for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn.getAttribute("data-nome")||"")}})(buttons[i])}
   if(!seoFeito){seoFeito=true;seo(g)}
@@ -204,7 +285,7 @@ function dataBR(d){var m=String(d||"").match(/^(\d{4})-(\d{2})-(\d{2})/);return 
 fetch("/novidades.json",{cache:"no-cache"}).then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(d){
   var p=(d.posts||[]).slice().sort(function(a,b){return String(b.data).localeCompare(String(a.data))}).slice(0,5),box=document.getElementById("news");
   if(!p.length){box.innerHTML='<p style="color:var(--mute)">Sem novidades por enquanto.</p>';return}
-  box.innerHTML=p.map(function(x){return'<article><time datetime="'+esc(x.data)+'">'+esc(dataBR(x.data))+'</time><h3>'+esc(x.titulo)+'</h3><p>'+esc(x.texto)+'</p>'+(x.jogo?'<p><a href="/jogo?id='+encodeURIComponent(x.jogo)+'">Ver o jogo →</a></p>':"")+'</article>'}).join("");
+  box.innerHTML=p.map(function(x){return'<article><time datetime="'+esc(x.data)+'">'+esc(dataBR(x.data))+'</time><h3>'+esc(x.titulo)+'</h3><p>'+esc(x.texto)+'</p>'+(x.jogo?'<p><a href="#jogos" data-ver="'+esc(x.jogo)+'">Ver o jogo →</a></p>':"")+'</article>'}).join("");
 }).catch(function(){document.getElementById("news").innerHTML='<p style="color:var(--mute)">Não consegui carregar as novidades agora.</p>'});
 carregar();
 setInterval(function(){if(!document.hidden)carregar()},5000);
