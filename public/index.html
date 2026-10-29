@@ -2,7 +2,7 @@
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>TSS The Swift Store</title>
-<meta name="description" content="Jogos da TSS The Swift Store. Baixe o TSS Hub e receba as atualizacoes automaticamente.">
+<meta name="description" content="Jogos da TSS The Swift Store.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-70 -70 140 140'%3E%3Cpolygon fill='%23e6cf4a' points='0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54'/%3E%3C/svg%3E">
 <style>
 :root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -51,7 +51,7 @@ footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3r
 <section class="hero">
   <svg viewBox="-70 -70 140 140"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg>
   <h1>TSS</h1><p class="sub">THE SWIFT STORE</p>
-  <p class="lead">Jogos feitos por <b>@TS_KKJJ</b>. Instale o TSS Hub uma vez e receba cada versao nova automaticamente, sem baixar tudo de novo.</p>
+  <p class="lead">Jogos feitos por <b>@TS_KKJJ</b>. Instale o TSS Hub uma vez e receba cada versao nova automaticamente.</p>
   <a class="btn off" id="hubbtn" href="#hub">Baixar o TSS Hub</a><a class="btn ghost" href="#jogos">Ver jogos</a>
 </section>
 <main>
@@ -67,80 +67,42 @@ footer{text-align:center;color:var(--mute);font-size:.85rem;padding:2rem 1rem 3r
 <footer>© TSS The Swift Store · Desenvolvedor @TS_KKJJ · <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a></footer>
 <script>
 function esc(s){
-  return String(s==null?"":s)
-    .replace(/&/g,"&")
-    .replace(/</g,"<")
-    .replace(/>/g,">")
-    .replace(/"/g,""")
-    .replace(/'/g,"&#39;");
-}
-function safe(u){
-  return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"") ? u : "";
-}
-function fmtPreco(p){
-  var n = Number(p);
-  if (!Number.isFinite(n) || n <= 0) return "Gratis (teste)";
-  return "R$ " + n.toFixed(2).replace(".", ",");
-}
-function comprar(jogo, preco, btn){
-  btn.disabled = true;
-  btn.textContent = "Abrindo pagamento…";
-  fetch("/api/criar-pagamento", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jogo: jogo, preco: preco })
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (!d.ok || !d.init_point) throw new Error(d.erro || "Nao consegui criar o pagamento.");
-    location.href = d.init_point;
-  }).catch(function(e){
-    alert(e.message || "Erro no pagamento");
-    btn.disabled = false;
-    btn.textContent = btn.getAttribute("data-label") || "Comprar";
+  return String(s==null?"":s).replace(/[&<>"']/g,function(c){
+    if(c==="&")return "\u0026amp;";
+    if(c==="<")return "\u0026lt;";
+    if(c===">")return "\u0026gt;";
+    if(c==='"')return "\u0026quot;";
+    return "\u0026#39;";
   });
 }
-fetch("catalog.json", { cache: "no-cache" }).then(function(r){
-  return r.json();
-}).then(function(d){
-  var hub = d.hub || {};
-  var b = document.getElementById("hubbtn");
-  if (hub.download_url && safe(hub.download_url)) {
-    b.href = safe(hub.download_url);
-    b.classList.remove("off");
-    b.textContent = "Baixar o TSS Hub v" + esc(hub.version);
-  }
-  var g = d.games || [];
-  var grid = document.getElementById("grid");
-  var msg = document.getElementById("msg");
-  msg.style.display = g.length ? "none" : "block";
-  if (!g.length) msg.textContent = "Nenhum jogo publicado ainda.";
-  grid.innerHTML = g.map(function(x){
-    var acao = "";
-    if (x.download_url) {
-      acao = '<a class="btn" href="' + esc(safe(x.download_url)) + '">Baixar</a>';
-    } else if (x.protegido) {
-      var label = Number(x.preco) > 0 ? "Comprar" : "Obter gratis (teste)";
-      acao = '<button class="btn" data-jogo="' + esc(x.id) + '" data-preco="' + esc(x.preco || 0) + '" data-label="' + esc(label) + '">' + esc(label) + '</button>';
-    } else {
-      acao = "<small>Em breve</small>";
-    }
-    var precoTxt = x.protegido ? '<span class="preco">' + esc(fmtPreco(x.preco)) + '</span>' : "";
-    var meta = "v" + esc(x.version);
-    if (x.size_mb) meta += " · " + esc(x.size_mb) + " MB";
-    if (precoTxt) meta += " · " + precoTxt;
-    var tags = (x.tags || []).map(function(t){ return "<span>" + esc(t) + "</span>"; }).join("");
-    return '<article class="card"><img src="' + esc(safe(x.capsule_url)) + '" alt="Capa de ' + esc(x.name) + '" loading="lazy">' +
-      '<div class="b"><h3>' + esc(x.name) + '</h3><div class="tags">' + tags + '</div>' +
-      '<p>' + esc(x.description) + '</p><div class="meta"><small>' + meta + '</small>' + acao + '</div></div></article>';
+function safe(u){return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:""}
+function fmtPreco(p){var n=Number(p);if(!Number.isFinite(n)||n<=0)return"Gratis (teste)";return"R$ "+n.toFixed(2).replace(".",",")}
+function comprar(jogo,preco,btn){
+  btn.disabled=true;btn.textContent="Abrindo pagamento…";
+  fetch("/api/criar-pagamento",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jogo:jogo,preco:preco})})
+  .then(function(r){return r.json()}).then(function(d){
+    if(!d.ok||!d.init_point)throw new Error(d.erro||"Nao consegui criar o pagamento.");
+    location.href=d.init_point;
+  }).catch(function(e){alert(e.message||"Erro");btn.disabled=false;btn.textContent=btn.getAttribute("data-label")||"Comprar"});
+}
+fetch("catalog.json",{cache:"no-cache"}).then(function(r){return r.json()}).then(function(d){
+  var hub=d.hub||{},b=document.getElementById("hubbtn");
+  if(hub.download_url&&safe(hub.download_url)){b.href=safe(hub.download_url);b.classList.remove("off");b.textContent="Baixar o TSS Hub v"+esc(hub.version)}
+  var g=d.games||[],grid=document.getElementById("grid"),msg=document.getElementById("msg");
+  msg.style.display=g.length?"none":"block";
+  if(!g.length)msg.textContent="Nenhum jogo publicado ainda.";
+  grid.innerHTML=g.map(function(x){
+    var acao="";
+    if(x.download_url)acao='<a class="btn" href="'+esc(safe(x.download_url))+'">Baixar</a>';
+    else if(x.protegido){var label=Number(x.preco)>0?"Comprar":"Obter gratis (teste)";
+      acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-label="'+esc(label)+'">'+esc(label)+'</button>'}
+    else acao="<small>Em breve</small>";
+    var precoTxt=x.protegido?'<span class="preco">'+esc(fmtPreco(x.preco))+'</span>':"";
+    var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"")+(precoTxt?" · "+precoTxt:"");
+    var tags=(x.tags||[]).map(function(t){return "<span>"+esc(t)+"</span>"}).join("");
+    return '<article class="card"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+'" loading="lazy"><div class="b"><h3>'+esc(x.name)+'</h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
   }).join("");
-  var buttons = grid.querySelectorAll("button[data-jogo]");
-  for (var i = 0; i < buttons.length; i++) {
-    (function(btn){
-      btn.onclick = function(){
-        comprar(btn.getAttribute("data-jogo"), Number(btn.getAttribute("data-preco")) || 0, btn);
-      };
-    })(buttons[i]);
-  }
-}).catch(function(){
-  document.getElementById("msg").textContent = "Nao consegui carregar o catalogo agora.";
-});
+  var buttons=grid.querySelectorAll("button[data-jogo]");
+  for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn)}})(buttons[i])}
+}).catch(function(){document.getElementById("msg").textContent="Nao consegui carregar o catalogo agora."});
 </script></body></html>
