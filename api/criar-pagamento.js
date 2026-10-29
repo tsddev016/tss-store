@@ -129,4 +129,15 @@ module.exports = async (req, res) => {
   } catch (e) {
     return L.responder(res, e);
   }
+      // O Mercado Pago exige payer mesmo para compras como visitante.
+      payer: {
+        email: email || "p82841673@gmail.com",
+        ...(nome ? {
+          first_name: nome.split(" ")[0].slice(0, 40),
+          last_name: nome.split(" ").slice(1).join(" ").slice(0, 60)
+        } : {}),
+        ...(L.cpfValido(cpf) ? {
+          identification: { type: "CPF", number: cpf }
+        } : {}),
+      },
 };
