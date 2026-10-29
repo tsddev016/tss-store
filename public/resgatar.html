@@ -2,31 +2,60 @@
 <style>
 :root{--bg:#0d0f14;--card:#171a22;--line:#2a2f3c;--tx:#e8eaf0;--mut:#8b93a7;--ac:#f5b700;--ok:#3ecf8e;--err:#ff5c6c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,Segoe UI,sans-serif}
-.w{max-width:980px;margin:0 auto;padding:20px 16px 60px}h1{font-size:22px;margin:8px 0 2px}h2{font-size:17px;margin:0 0 10px}
+.w{max-width:560px;margin:0 auto;padding:20px 16px 60px}h1{font-size:22px;margin:8px 0 2px}h2{font-size:17px;margin:0 0 10px}
 .mut{color:var(--mut)}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:14px 0}
-input,select,textarea{width:100%;background:#0f121a;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}
+input{width:100%;background:#0f121a;color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit}
 label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px}
 button{background:var(--ac);color:#111;border:0;border-radius:8px;padding:9px 14px;font:inherit;font-weight:700;cursor:pointer}
 button.s{background:#262b38;color:var(--tx);font-weight:600;padding:5px 9px;font-size:13px}button:disabled{opacity:.5}
-.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);vertical-align:top}
-.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0}.tabs button{background:#262b38;color:var(--tx)}.tabs button.on{background:var(--ac);color:#111}
-.ok{color:var(--ok)}.err{color:var(--err)}.msg{min-height:20px;margin-top:8px;font-size:14px}.sc{overflow-x:auto}
+.ok{color:var(--ok)}.err{color:var(--err)}.msg{min-height:20px;margin-top:8px;font-size:14px}
 code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border:1px dashed var(--ac);border-radius:8px;padding:12px;font-size:20px;letter-spacing:1px;text-align:center;word-break:break-all}
-</style></head><body><div class="w" style="max-width:560px">
-<h1>Resgatar chave do jogo</h1><p class="mut">Comprou na Game Market? Informe o número do pedido e o e-mail da compra para ver a sua chave de ativação.</p>
-<div class="card"><label>Número do pedido</label><input id="p" autocomplete="off" placeholder="ex.: 12345"><label>E-mail usado na compra</label><input id="e" type="email" autocomplete="email">
-<p><button id="b">Ver minha chave</button></p><div class="msg" id="m"></div></div>
-<div class="card" id="r" hidden><h2>Sua chave</h2><div class="k" id="k"></div><p><button class="s" id="c">Copiar chave</button></p>
-<ol><li>Baixe e instale o <b>TSS Hub</b>: <a id="hub" href="#" style="color:var(--ac)">link do Hub</a></li><li>Abra o Hub e clique em <b>INSTALAR</b> no jogo.</li><li>Cole a chave quando o Hub pedir. Ela vale para até 2 computadores.</li></ol>
-<p class="mut">Se o Windows avisar “app desconhecido”: Mais informações → Executar assim mesmo.</p></div></div>
+a{color:var(--ac)}
+</style></head><body><div class="w">
+<h1>Resgatar chave do jogo</h1>
+<p class="mut">Comprou na <b>GameMarket</b> ou no site da TSS? Informe o numero do pedido e o <b>CPF</b> da compra para ver a chave de ativacao.</p>
+<div class="card">
+<label>Numero do pedido</label>
+<input id="p" autocomplete="off" placeholder="ex.: ABC123 ou numero do pedido">
+<label>CPF</label>
+<input id="cpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+<label>Nome completo (opcional)</label>
+<input id="nome" autocomplete="name" placeholder="Como no cadastro da compra">
+<label>E-mail (so se comprou no site da TSS)</label>
+<input id="e" type="email" autocomplete="email" placeholder="opcional">
+<p><button id="b">Ver minha chave</button></p>
+<div class="msg" id="m"></div>
+</div>
+<div class="card" id="r" hidden>
+<h2>Sua chave</h2>
+<div class="k" id="k"></div>
+<p><button class="s" id="c">Copiar chave</button></p>
+<ol>
+<li>Baixe e instale o <b>TSS Hub</b>: <a id="hub" href="#">link do Hub</a></li>
+<li>Abra o Hub e clique em <b>INSTALAR</b> no jogo.</li>
+<li>Cole a chave quando o Hub pedir. Ela vale para ate 2 computadores.</li>
+</ol>
+<p class="mut">Se o Windows avisar “app desconhecido”: Mais informacoes → Executar assim mesmo.</p>
+</div>
+<p class="mut"><a href="/">Voltar a loja</a></p>
+</div>
 <script>
 const $=i=>document.getElementById(i);
-fetch("/catalog.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{const u=c.hub&&c.hub.download_url;if(u)$("hub").href=u;else{$("hub").removeAttribute("href");$("hub").textContent="(link do Hub será informado pelo suporte)"}}).catch(()=>{});
-$("b").onclick=async()=>{const m=$("m");m.className="msg";m.textContent="Conferindo…";$("b").disabled=true;
- try{const r=await fetch("/api/resgatar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({pedido:$("p").value,email:$("e").value})});const d=await r.json();
-  if(!d.ok){m.className="msg err";m.textContent=d.erro||"Não foi possível conferir.";$("r").hidden=true}
-  else{m.className="msg ok";m.textContent="Compra confirmada.";$("k").textContent=d.chave;$("r").hidden=false}
- }catch(x){m.className="msg err";m.textContent="Sem conexão. Tente de novo."}$("b").disabled=false};
+fetch("/catalog.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{const u=c.hub&&c.hub.download_url;if(u)$("hub").href=u;else{$("hub").removeAttribute("href");$("hub").textContent="(link do Hub sera informado pelo suporte)"}}).catch(()=>{});
+$("b").onclick=async()=>{
+  const m=$("m");m.className="msg";m.textContent="Conferindo…";$("b").disabled=true;
+  try{
+    const r=await fetch("/api/resgatar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      pedido:$("p").value,
+      cpf:$("cpf").value,
+      nome:$("nome").value,
+      email:$("e").value
+    })});
+    const d=await r.json();
+    if(!d.ok){m.className="msg err";m.textContent=d.erro||"Nao foi possivel conferir.";$("r").hidden=true}
+    else{m.className="msg ok";m.textContent="Compra confirmada.";$("k").textContent=d.chave;$("r").hidden=false}
+  }catch(x){m.className="msg err";m.textContent="Sem conexao. Tente de novo."}
+  $("b").disabled=false;
+};
 $("c").onclick=()=>{navigator.clipboard.writeText($("k").textContent);$("c").textContent="Copiada!"};
 </script></body></html>
