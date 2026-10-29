@@ -3,6 +3,16 @@ const L = require("./_cofre");
 
 const JOGO_OK = /^[a-z0-9_-]{1,40}$/;
 
+// Chave de recuperacao do pedido (derivada com KEY_SECRET, igual a que o comprador viu).
+// So devolve se bater com o hash guardado: assim nunca mostra uma chave que nao funciona.
+function recDe(pid, r) {
+  try {
+    if (!r || !r.rec_h) return "";
+    const c = L.codigoRecuperacao(pid);
+    return L.seguro(r.rec_h, L.hashRecuperacao(c)) ? c : "";
+  } catch (e) { return ""; }
+}
+
 function achar(data, id) {
   id = String(id || "").toLowerCase();
   if (!/^[0-9a-f]{8,64}$/.test(id)) throw new L.Falha(400, "Identificador invalido.", "pedido");
@@ -32,7 +42,7 @@ module.exports = async (req, res) => {
       const pedidos = Object.entries(data.pedidos).map(([p, r]) => ({
         pedido: p, jogo: r.jogo, criado: r.criado, origem: r.origem, chave_id: String(r.h || "").slice(0, 12),
         revogada: !!(data.keys[r.h] && data.keys[r.h].revogada), tem_email: !!r.email,
-        reembolso: (data.reembolsos[p] || {}).estado || "", motivo: (data.reembolsos[p] || {}).motivo || "", conta: !!r.conta, mp: !!r.mp_payment,
+        reembolso: (data.reembolsos[p] || {}).estado || "", motivo: (data.reembolsos[p] || {}).motivo || "", conta: !!r.conta, mp: !!r.mp_payment, preco: Number(r.preco) || 0, rec: recDe(p, r),
       })).sort((a, c) => String(c.criado).localeCompare(String(a.criado)));
       return res.status(200).json({ ok: true, chaves, pedidos, log: data.log.slice().reverse() });
     }
