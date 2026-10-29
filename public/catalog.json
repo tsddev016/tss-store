@@ -25,22 +25,6 @@
       "changelog": "Primeira versão da demo (só o Level 1, sem modo online).",
       "protegido": false,
       "preco": 0
-    },
-    {
-      "id": "ashfall",
-      "name": "Ashfall: a Guerra",
-      "version": "1",
-      "developer": "TS_KKJJ",
-      "description": "Novidade da TSS The Swift Store. Descrição e capa em breve.",
-      "tags": [],
-      "capsule_url": "icon.svg",
-      "download_url": "",
-      "sha256": "0dab92562b23ef142b2013a47c666fdfb9b4be0cbf9c8a2b73c43bdb8761d151",
-      "size_mb": 1,
-      "launch": "",
-      "changelog": "Primeira versão.",
-      "protegido": true,
-      "preco": 2.5
     }
   ]
 }
