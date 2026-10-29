@@ -1,5 +1,6 @@
 // Webhook de compra: Game Market (Standard Webhooks) ou Mercado Pago (IPN).
 const L = require("./_cofre");
+const R = require("./_release");
 const crypto = require("crypto");
 
 const NOMES = {
@@ -128,6 +129,8 @@ function isGameMarket(req) {
     (L.corpo(req).event && String(L.corpo(req).event).startsWith("sale.")));
 }
 
+const pago_ok = (pay) => Number(pay.transaction_amount) || 0;
+
 async function processarMercadoPago(req) {
   const q = req.query || {};
   const b = L.corpo(req);
@@ -154,10 +157,18 @@ async function processarMercadoPago(req) {
   const pedido = String(pay.external_reference || pay.id || id);
   const email = (pay.payer && pay.payer.email) || "";
   const meta = pay.metadata || {};
-  const jogo = String(meta.jogo || process.env.JOGO_PADRAO || "backrooms").toLowerCase();
+  const jogo = String(meta.jogo || "").toLowerCase();
 
   let acao = "ignorar";
-  if (status === "approved") acao = "ativar";
+  let motivoIgn = "";
+  if (status === "approved") {
+    const cat = await R.lerCatalogo();
+    const g = jogo && cat && (cat.games || []).find((x) => x.id === jogo);
+    const preco = g ? Number(g.preco) : 0, pago = Number(pay.transaction_amount);
+    if (!g || !g.protegido) motivoIgn = "jogo desconhecido";
+    else if (!(preco > 0) || !(pago + 0.005 >= preco)) motivoIgn = "valor nao confere";
+    else acao = "ativar";
+  }
   else if (["refunded", "charged_back", "cancelled"].includes(status)) acao = "revogar";
 
   const out = await L.mutar((data) => {
@@ -166,7 +177,7 @@ async function processarMercadoPago(req) {
       data.log = data.log.slice(-20);
     };
     if (acao === "ignorar") {
-      reg(true, "MP: status " + status + " (aguardando).");
+      reg(true, motivoIgn ? "MP: pagamento aprovado ignorado (" + motivoIgn + ")." : "MP: status " + status + " (aguardando).");
       return { salvar: true, resultado: { ignorado: true, status } };
     }
     if (acao === "revogar") {
@@ -179,9 +190,9 @@ async function processarMercadoPago(req) {
       reg(true, "MP: estorno sem pedido local.");
       return { salvar: true, resultado: { revogada: false } };
     }
-    const x = L.registrarPedido(data, { pedido, email, jogo, origem: "mercadopago" });
+    const x = L.registrarPedido(data, { pedido, email, jogo, origem: "mercadopago", preco: pago_ok(pay), mp_payment: id });
     reg(true, x.novo ? "MP: chave criada." : "MP: pedido ja conhecido.");
-    return { salvar: true, resultado: { chave: x.chave, jogo, novo: x.novo, pedido } };
+    return { salvar: true, resultado: { jogo, novo: x.novo, pedido } };
   }, "sentinela: pagamento Mercado Pago");
 
   return Object.assign({ ok: true }, out);
