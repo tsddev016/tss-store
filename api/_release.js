@@ -61,12 +61,37 @@ function scoreAsset(name, jogo) {
 }
 
 async function lerCatalogo() {
-  const r = await fetch(`${GH}/repos/${SITE}/contents/public/catalog.json`, {
-    headers: hdr({ Accept: "application/vnd.github.raw+json" }),
-    cache: "no-store",
-  });
-  if (!r.ok) return null;
-  return r.json();
+  // 1) GitHub (mais novo possivel). Se o token nao enxerga o tss-store, nao quebra: cai no passo 2.
+  try {
+    if (process.env.GH_TOKEN) {
+      const r = await fetch(`${GH}/repos/${SITE}/contents/public/catalog.json`, {
+        headers: hdr({ Accept: "application/vnd.github.raw+json" }),
+        cache: "no-store",
+      });
+      if (r.ok) {
+        const j = await r.json();
+        if (j && Array.isArray(j.games)) return j;
+      } else {
+        console.error("lerCatalogo: GitHub respondeu " + r.status + " (confira o GH_TOKEN: precisa ler o tss-store)");
+      }
+    }
+  } catch (e) {
+    console.error("lerCatalogo: erro no GitHub:", e && e.message);
+  }
+  // 2) Catalogo publicado no proprio site (sempre acessivel, nao depende de token).
+  try {
+    const base = String(process.env.SITE_URL || "https://tss-store.vercel.app").replace(/\/+$/, "");
+    const r = await fetch(base + "/catalog.json?t=" + Date.now(), { cache: "no-store" });
+    if (r.ok) {
+      const j = await r.json();
+      if (j && Array.isArray(j.games)) return j;
+    } else {
+      console.error("lerCatalogo: /catalog.json respondeu " + r.status);
+    }
+  } catch (e) {
+    console.error("lerCatalogo: erro no catalogo publico:", e && e.message);
+  }
+  return null;
 }
 
 async function acharRelease(jogo, versao) {
