@@ -46,12 +46,9 @@ module.exports = async (req, res) => {
       if (!conta) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
       salvo = {}; // a conta nao guarda dados pessoais
     }
-    const nome = (String(b.nome || "").trim().replace(/\s+/g, " ") || salvo.nome || "");
+    const nome = (String(b.nome || "").trim().replace(/\s+/g, " ") || salvo.nome || "").slice(0, 80);
     const cpf = L.normalizarCpf(b.cpf) || salvo.cpf || "";
-    const email = String(b.email || "").trim().toLowerCase();
-    if (nome.length < 5 || nome.length > 80 || !nome.includes(" ")) throw new L.Falha(400, "Informe seu nome completo.", "dados");
-    if (!L.cpfValido(cpf)) throw new L.Falha(400, "CPF invalido.", "dados");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new L.Falha(400, "E-mail invalido.", "dados");
+    const email = String(b.email || salvo.email || "").trim().toLowerCase();
 
     if (sess) await L.mutar((data) => {
       const c = data.contas[sess.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
@@ -87,12 +84,11 @@ module.exports = async (req, res) => {
           unit_price: Number(preco.toFixed(2)),
         }],
       },
-      payer: {
-        email,
-        first_name: nome.split(" ")[0].slice(0, 40),
-        last_name: nome.split(" ").slice(1).join(" ").slice(0, 60),
-        identification: { type: "CPF", number: cpf },
-      },
+      ...(email || nome || L.cpfValido(cpf) ? { payer: {
+        ...(email ? { email } : {}),
+        ...(nome ? { first_name: nome.split(" ")[0].slice(0, 40), last_name: nome.split(" ").slice(1).join(" ").slice(0, 60) } : {}),
+        ...(L.cpfValido(cpf) ? { identification: { type: "CPF", number: cpf } } : {}),
+      } } : {}),
     };
 
     const idem = crypto.createHash("sha256").update(pedidoId + String(Date.now())).digest("hex").slice(0, 32);
