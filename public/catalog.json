@@ -23,7 +23,8 @@
       "size_mb": 22,
       "launch": "Backrooms_Cade_a_Porta/sistema/executor.py",
       "changelog": "Introdução TSS The Swift Store ao abrir o jogo.",
-      "protegido": true
+      "protegido": true,
+      "preco": 0
     },
     {
       "id": "backrooms-demo",
@@ -43,7 +44,8 @@
       "size_mb": 22,
       "launch": "Backrooms_Cade_a_Porta_DEMO/sistema/executor.py",
       "changelog": "Primeira versão da demo (só o Level 1, sem modo online).",
-      "protegido": false
+      "protegido": false,
+      "preco": 0
     }
   ]
 }
