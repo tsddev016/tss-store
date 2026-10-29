@@ -4,27 +4,5 @@
     "version": "2.0",
     "download_url": "https://www.mediafire.com/file/3k68gxkvie9o4sx/TSS_Hub.zip/file"
   },
-  "games": [
-    {
-      "id": "backrooms-demo",
-      "name": "Backrooms: Cadê a Porta? (DEMO)",
-      "version": "1",
-      "developer": "TS_KKJJ",
-      "description": "Demo grátis: jogue o Level 1 e ache a porta certa. A versão completa tem mais levels e o modo online.",
-      "tags": [
-        "DEMO",
-        "GRÁTIS",
-        "TERROR",
-        "VISUAL PS1"
-      ],
-      "capsule_url": "capsules/backrooms-demo.png",
-      "download_url": "https://tss-store.vercel.app/api/baixar-gratis?jogo=backrooms-demo",
-      "sha256": "462d230d8babb412105270f41f58be40a331032bbd48477e29423c41e7171e5f",
-      "size_mb": 22,
-      "launch": "Backrooms_Cade_a_Porta_DEMO/sistema/executor.py",
-      "changelog": "Primeira versão da demo (só o Level 1, sem modo online).",
-      "protegido": false,
-      "preco": 0
-    }
-  ]
+  "games": []
 }
