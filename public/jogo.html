@@ -34,11 +34,14 @@ h1{margin:1.2rem 0 .3rem;font-size:clamp(1.6rem,4vw,2.3rem)}
 .pre{white-space:pre-line}
 .stack>*+*{margin-top:1.2rem}
 .msg{text-align:center;padding:4rem 1rem;color:var(--mute)}
+.seg{list-style:none;padding:0;margin:1rem 0 0;color:var(--mute);font-size:.85rem}.seg li{padding:.2rem 0}.seg li::before{content:"✓ ";color:var(--gold)}
+.rod{border-top:1px solid var(--line);margin-top:2rem;padding:1.5rem 1rem 2rem;text-align:center;color:var(--mute);font-size:.85rem}.rod a{color:var(--gold);text-decoration:none;margin:0 .5rem}.rod a:hover{text-decoration:underline}
 </style>
 </head>
 <body>
 <header><a href="/">TSS · THE SWIFT STORE</a><a class="v" href="/">← Todos os jogos</a></header>
 <main id="m"><p class="msg">Carregando…</p></main>
+<footer class="rod"><a href="/sobre">Sobre</a><a href="/suporte">Suporte</a><a href="/termos">Termos</a><a href="/privacidade">Privacidade</a><a href="/reembolso">Reembolso</a><br>© 2026 TSS The Swift Store</footer>
 <script>
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c==='"'?"&quot;":"&#39;"})}
 function safe(u){return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:""}
@@ -70,7 +73,7 @@ function pintar(g){
   if(v)h+='<div class="box"><h2>Gameplay</h2>'+v+'</div>';
   h+='<div class="box"><h2>Sobre o jogo</h2>'+texto(g.description)+'</div>';
   if(shots)h+='<div class="box"><h2>Capturas de tela</h2><div class="shots">'+shots+'</div></div>';
-  h+='</div><div class="stack"><div class="box"><div class="price">'+(pago?preco(g.preco):livre?"Grátis":"Em breve")+'</div>'+acao+'</div>';
+  h+='</div><div class="stack"><div class="box"><div class="price">'+(pago?preco(g.preco):livre?"Grátis":"Em breve")+'</div>'+acao+(pago?'<ul class="seg"><li>Pagamento via Pix (Mercado Pago)</li><li>Reembolso em até 7 dias</li><li>Atualizações automáticas pelo TSS Hub</li></ul>':'<ul class="seg"><li>Atualizações automáticas pelo TSS Hub</li></ul>')+'</div>';
   if(g.requisitos)h+='<div class="box"><h2>Requisitos do PC</h2><p class="pre">'+esc(g.requisitos)+'</p></div>';
   if(g.changelog)h+='<div class="box"><h2>Novidades da v'+esc(g.version)+'</h2><p class="pre">'+esc(g.changelog)+'</p></div>';
   h+='</div></div>';

@@ -3,7 +3,7 @@ const R = require("./_release");
 module.exports = async (req, res) => {
   const host = req.headers["x-forwarded-host"] || req.headers.host || "tss-store.vercel.app";
   const origin = "https://" + host;
-  const urls = ["/", "/termos", "/privacidade", "/reembolso"];
+  const urls = ["/", "/sobre", "/suporte", "/termos", "/privacidade", "/reembolso"];
   try {
     const cat = await R.lerCatalogo();
     ((cat && cat.games) || []).forEach((g) => { if (g && g.id) urls.push("/jogo/" + encodeURIComponent(g.id)); });

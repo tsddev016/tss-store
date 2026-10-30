@@ -2,7 +2,7 @@
 (function(){
   var V="2026-10-29",KEY="tss_aceite";
   function aceito(){try{var a=JSON.parse(localStorage.getItem(KEY)||"null");return !!a&&a.v===V}catch(e){return false}}
-  function paginaLegal(){return /^\/(termos|privacidade|reembolso)(\.html)?\/?$/.test(location.pathname)}
+  function paginaLegal(){return /^\/(termos|privacidade|reembolso|sobre|suporte)(\.html)?\/?$/.test(location.pathname)}
   function el(t,a,h){var e=document.createElement(t);for(var k in a||{})e[k]=a[k];if(h!=null)e.innerHTML=h;return e}
   function sincronizar(){
     if(!aceito())return Promise.resolve();

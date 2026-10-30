@@ -94,12 +94,33 @@ footer a:hover{text-decoration:underline}
 .preco{font-weight:700;color:var(--gold)}
 @media (max-width:560px){.btn.ghost{margin:.6rem 0 0}.hero{padding-top:3rem}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+[hidden]{display:none!important}
+.filtros{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin:0 0 1.2rem}
+.filtros input{flex:1 1 220px;background:var(--panel);border:1px solid var(--line);color:var(--text);padding:.65rem 1rem;border-radius:12px;font:inherit}
+.filtros input:focus{border-color:var(--gold2);outline:none}
+#ftags{display:flex;flex-wrap:wrap;gap:.4rem}
+.ch{background:transparent;border:1px solid var(--line);color:var(--mute);border-radius:999px;padding:.3rem .85rem;font:inherit;font-size:.8rem;cursor:pointer;transition:border-color .15s,color .15s}
+.ch:hover,.ch.on{border-color:var(--gold2);color:var(--gold)}
+.news{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
+.nw{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:16px;padding:1.1rem 1.3rem;transition:border-color .18s}
+.nw:hover{border-color:var(--gold2)}
+.nw small{color:var(--gold);letter-spacing:.08em;font-size:.75rem}
+.nw h3{margin:.3rem 0 .4rem;font-size:1.1rem}
+.nw p{margin:0 0 .6rem;color:var(--mute);font-size:.92rem;white-space:pre-line}
+.nw a{color:var(--gold);text-decoration:none;font-weight:700;font-size:.9rem}
+footer.rod{text-align:left;padding:2.5rem clamp(1rem,4vw,3rem) 2rem}
+.rg{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.8rem}
+.rg b{display:block;color:var(--text);margin-bottom:.5rem;letter-spacing:.05em}
+.rg a{display:block;color:var(--mute);text-decoration:none;padding:.15rem 0}
+.rg a:hover{color:var(--gold);text-decoration:none}
+.rg p{margin:0;color:var(--mute);max-width:17rem}
+.cp{max-width:1120px;margin:2rem auto 0;padding-top:1.2rem;border-top:1px solid var(--line);color:var(--mute);font-size:.8rem;text-align:center}
 </style>
 </head>
 <body>
 <header>
   <a class="brand" href="/" aria-label="TSS The Swift Store - início"><svg viewBox="-70 -70 140 140" aria-hidden="true"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><span>TSS<small>THE SWIFT STORE</small></span></a>
-  <nav aria-label="Principal"><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="#faq">Dúvidas</a><a href="/resgatar">Resgatar chave</a><a href="/conta" id="navconta">Entrar</a><a class="pill" href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
+  <nav aria-label="Principal"><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="#faq">Dúvidas</a><a href="/suporte">Suporte</a><a href="/resgatar">Resgatar chave</a><a href="/conta" id="navconta">Entrar</a><a class="pill" href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
 </header>
 
 <section class="hero">
@@ -107,15 +128,18 @@ footer a:hover{text-decoration:underline}
   <h1>TSS<span>The Swift Store</span></h1>
   <p class="lead">Jogos indie brasileiros feitos por <b>@TS_KKJJ</b>. Instale o <b>TSS Hub</b> uma vez e receba cada versão nova automaticamente.</p>
   <a class="btn off" id="hubbtn" href="#hub">Baixar o TSS Hub</a><a class="btn ghost" href="#jogos">Ver jogos</a>
-  <div class="chips"><span>Atualização automática</span><span>Pagamento via Pix</span><span>Jogos para PC</span></div>
+  <div class="chips"><span>Atualização automática</span><span>Pagamento via Pix (Mercado Pago)</span><span>Reembolso em 7 dias</span><span>Jogos para PC</span></div>
 </section>
 
 <main>
   <h2 id="jogos">JOGOS</h2>
+  <div class="filtros" id="filtros" hidden><input id="fq" type="search" placeholder="Buscar jogo…" aria-label="Buscar jogo"><div id="ftags"></div></div>
   <div class="grid" id="grid" aria-live="polite"><div class="sk"></div><div class="sk"></div></div>
   <div id="msg"></div>
   <p class="mut" style="font-size:.85rem;margin-top:1rem">Aviso: jogos de terror podem ter sustos, sons altos e luzes piscantes. Pessoas com epilepsia fotossensível devem consultar um médico antes de jogar. Recomendado para maiores de 16 anos, salvo indicação diferente na descrição.</p>
   <noscript><p>Ative o JavaScript para ver o catálogo. Jogo em destaque: <b>Backrooms: Cadê a Porta?</b>, um jogo de terror e exploração dos corredores amarelos.</p></noscript>
+
+  <div id="novsec" hidden><h2 id="novidades">NOVIDADES</h2><div class="news" id="news"></div></div>
 
   <h2 id="hub">COMO FUNCIONA</h2>
   <div class="how">
@@ -134,7 +158,12 @@ footer a:hover{text-decoration:underline}
   <details><summary>O que é a TSS The Swift Store?</summary><p>É a loja e o catálogo de jogos indie feitos por @TS_KKJJ. Você instala o TSS Hub uma vez e ele baixa e atualiza os jogos da loja para você.</p></details><details><summary>O que é o TSS Hub?</summary><p>É o programa para PC da TSS The Swift Store. Ele acha seus jogos, mostra os jogos do site com capa e descrição e avisa quando sai uma versão nova, atualizando com um clique.</p></details><details><summary>Como compro um jogo?</summary><p>Clique em Comprar Pix no jogo e pague pelo Pix no próprio site. Depois da confirmação, o jogo fica liberado para instalar pelo TSS Hub. Se você tem uma chave, use a página Resgatar chave.</p></details><details><summary>Existem jogos grátis?</summary><p>Sim. Alguns jogos têm demo gratuita para você testar antes de comprar, como a demo de Backrooms: Cadê a Porta?.</p></details><details><summary>Posso pedir reembolso?</summary><p>Sim. Compras feitas no site podem ser desfeitas em até 7 dias, com devolução integral do valor. Peça em Minha conta ou pelo Discord. Veja a Política de Reembolso.</p></details><details><summary>Que dados vocês guardam?</summary><p>Para comprar, pedimos nome completo, CPF e e-mail, guardados cifrados na sua conta, além do registro do aceite dos termos. Você pode ver, corrigir, baixar e excluir seus dados em Minha conta. Veja a Política de Privacidade.</p></details><details><summary>Como falo com o desenvolvedor?</summary><p>Entre no servidor de Discord da comunidade TSS, o link está no topo e no rodapé do site.</p></details>
 </main>
 
-<footer>© TSS The Swift Store · Desenvolvedor @TS_KKJJ · <a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a><br><a href="/termos">Termos de Uso</a> · <a href="/privacidade">Privacidade</a> · <a href="/reembolso">Reembolso (7 dias)</a> · <a href="/conta">Minha conta</a></footer>
+<footer class="rod"><div class="rg">
+<div><b>TSS The Swift Store</b><p>Jogos indie brasileiros feitos por @TS_KKJJ, com atualização automática pelo TSS Hub.</p></div>
+<div><b>Loja</b><a href="/#jogos">Jogos</a><a href="/#hub">TSS Hub</a><a href="/resgatar">Resgatar chave</a><a href="/conta">Minha conta</a></div>
+<div><b>Ajuda</b><a href="/sobre">Sobre a TSS</a><a href="/suporte">Suporte e contato</a><a href="/#faq">Dúvidas frequentes</a><a href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Comunidade no Discord</a></div>
+<div><b>Legal</b><a href="/termos">Termos de Uso</a><a href="/privacidade">Privacidade</a><a href="/reembolso">Reembolso (7 dias)</a></div>
+</div><p class="cp">© 2026 TSS The Swift Store · Pagamentos via Pix pelo Mercado Pago</p></footer>
 
 <script>
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c==='"'?"&quot;":"&#39;"})}
@@ -170,6 +199,24 @@ function seo(g){
     document.head.appendChild(s);
   }catch(e){}
 }
+var todos=[],fq="",ftag="";
+function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
+function filtrados(){return todos.filter(function(x){var ok=!fq||norm(x.name+" "+x.description+" "+(x.tags||[]).join(" ")).indexOf(fq)>-1;var t=!ftag||(x.tags||[]).indexOf(ftag)>-1;return ok&&t})}
+function redesenhar(){
+  var grid=document.getElementById("grid");
+  grid.innerHTML=filtrados().map(card).join("")||'<p class="mut">Nenhum jogo encontrado.</p>';
+  var buttons=grid.querySelectorAll("button[data-jogo]");
+  for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn.getAttribute("data-nome")||"")}})(buttons[i])}
+}
+function montarFiltros(){
+  var box=document.getElementById("filtros");
+  if(todos.length<4){box.hidden=true;fq="";ftag="";return}
+  box.hidden=false;
+  var tags=[];todos.forEach(function(x){(x.tags||[]).forEach(function(t){if(tags.indexOf(t)<0)tags.push(t)})});
+  document.getElementById("ftags").innerHTML=['<button class="ch'+(ftag===""?" on":"")+'" data-t="">Todos</button>'].concat(tags.map(function(t){return'<button class="ch'+(ftag===t?" on":"")+'" data-t="'+esc(t)+'">'+esc(t)+'</button>'})).join("");
+}
+document.getElementById("fq").oninput=function(){fq=norm(this.value);redesenhar()};
+document.getElementById("ftags").onclick=function(e){var b=e.target.closest?e.target.closest("button[data-t]"):null;if(!b)return;ftag=b.getAttribute("data-t");montarFiltros();redesenhar()};
 var ultimo="",seoFeito=false;
 function pintar(d){
   var hub=d.hub||{},b=document.getElementById("hubbtn");
@@ -177,9 +224,7 @@ function pintar(d){
   var g=(d.games||[]).filter(function(x){return x.disponivel===true}),grid=document.getElementById("grid"),msg=document.getElementById("msg");
   if(!g.length){grid.innerHTML="";msg.style.display="block";msg.textContent="Nenhum jogo publicado ainda.";return}
   msg.style.display="none";
-  grid.innerHTML=g.map(card).join("");
-  var buttons=grid.querySelectorAll("button[data-jogo]");
-  for(var i=0;i<buttons.length;i++){(function(btn){btn.onclick=function(){comprar(btn.getAttribute("data-jogo"),Number(btn.getAttribute("data-preco"))||0,btn.getAttribute("data-nome")||"")}})(buttons[i])}
+  todos=g;montarFiltros();redesenhar();
   if(!seoFeito){seoFeito=true;seo(g)}
 }
 /* Olha o catalogo e o cofre a cada 5 s; so redesenha quando algo mudou. */
@@ -196,6 +241,13 @@ function carregar(){
 carregar();
 setInterval(function(){if(!document.hidden)carregar()},5000);
 document.addEventListener("visibilitychange",function(){if(!document.hidden)carregar()});
+fetch("/novidades.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():{posts:[]}}).then(function(d){
+  var p=((d&&d.posts)||[]).slice(0,3);if(!p.length)return;
+  document.getElementById("novsec").hidden=false;
+  document.getElementById("news").innerHTML=p.map(function(n){
+    var dt="";try{dt=new Date(n.data+"T12:00:00").toLocaleDateString("pt-BR",{day:"numeric",month:"long",year:"numeric"})}catch(e){}
+    return'<article class="nw"><small>'+esc(dt)+'</small><h3>'+esc(n.titulo)+'</h3><p>'+esc(n.texto)+'</p>'+(n.jogo?'<a href="/jogo/'+encodeURIComponent(n.jogo)+'">Ver o jogo →</a>':'')+'</article>'}).join("");
+}).catch(function(){});
 fetch("/api/auth?acao=eu",{credentials:"same-origin"}).then(function(r){return r.json()}).then(function(d){if(d&&d.logado){var a=document.getElementById("navconta");a.textContent=d.nome?"Olá, "+d.nome.split(" ")[0]:"Minha conta"}}).catch(function(){});
 </script>
 <script src="/legal.js" defer></script>
