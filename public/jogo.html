@@ -52,7 +52,7 @@ function video(u){
   if(/\.(mp4|webm)(\?|$)/i.test(u))return'<div class="vid"><video src="'+esc(u)+'" controls preload="metadata"></video></div>';
   return"";
 }
-var id=decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()||"")).replace(/\.html$/,"");
+var qid=new URLSearchParams(location.search).get("id");var id=qid||decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()||"")).replace(/\.html$/,"");
 function pintar(g){
   document.title=g.name+" – TSS The Swift Store";
   var pago=!!g.protegido,livre=!pago&&(g.download_url||g.disponivel);

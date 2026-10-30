@@ -101,8 +101,12 @@
   ],
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/jogo/:id",
-      "destination": "/jogo"
+      "destination": "/api/jogo?id=:id"
     },
     {
       "source": "/auth/:acao/:provedor",
