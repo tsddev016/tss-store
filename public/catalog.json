@@ -61,22 +61,6 @@
       "changelog": "",
       "protegido": true,
       "preco": 1.25
-    },
-    {
-      "id": "test",
-      "name": "test",
-      "version": "1",
-      "developer": "TS_KKJJ",
-      "description": "ads",
-      "tags": [],
-      "capsule_url": "capsules/test.jpg",
-      "download_url": "",
-      "sha256": "b362afec075a6f5ba3d63f9644111cd51eb8922079ce0336a8d4620b00cd285c",
-      "size_mb": 1,
-      "launch": "Backrooms_Cade_a_Porta_DEMO/sistema/executor.py",
-      "changelog": "",
-      "protegido": true,
-      "preco": 4.5
     }
   ]
 }
