@@ -18,10 +18,13 @@
       "download_url": "",
       "sha256": "64e98b2d98ddf15c5495ee67d2e0d86fe24329c6517d94144e0fd170fe204f70",
       "size_mb": 29,
-      "launch": "Backrooms_Cade_a_Porta/sistema/executor.py",
+      "launch": "C:\\Users\\AppData\\Local\\TSS The Swift Store\\Games\\backrooms\\Backrooms_Cade_a_Porta_v13\\Backrooms_Cade_a_Porta\\sistema.py",
       "changelog": "",
       "protegido": true,
-      "preco": 4.5
+      "preco": 4.5,
+      "video_url": "",
+      "screenshots": [],
+      "requisitos": ""
     },
     {
       "id": "backrooms_demo",
