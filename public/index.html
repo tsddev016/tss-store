@@ -154,7 +154,7 @@ function card(x){
   var badge=x.protegido?fmtPreco(x.preco):((x.download_url||x.disponivel)?"GRÁTIS":"EM BREVE");
   var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"");
   var tags=(x.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
-  return '<article class="card"><div class="ph"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"><span class="badge">'+esc(badge)+'</span></div><div class="b"><h3>'+esc(x.name)+'</h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
+  return '<article class="card"><div class="ph"><a href="/jogo/'+encodeURIComponent(x.id)+'" style="display:block" aria-label="Ver pagina de '+esc(x.name)+'"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"></a><span class="badge">'+esc(badge)+'</span></div><div class="b"><h3><a href="/jogo/'+encodeURIComponent(x.id)+'" style="text-decoration:none">'+esc(x.name)+'</a></h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
 }
 function seo(g){
   try{

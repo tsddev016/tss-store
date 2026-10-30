@@ -55,6 +55,9 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <label>Tags (separadas por virgula)</label><input id="etag" placeholder="TERROR, ONLINE, DEMO">
 <label>Changelog</label><input id="ech">
 <label>Arquivo que abre (launch)</label><input id="el" placeholder="Pasta/sistema/executor.py">
+<label>Video de gameplay (link do YouTube ou .mp4 https)</label><input id="ev" placeholder="https://www.youtube.com/watch?v=...">
+<label>Capturas de tela (um link https por linha)</label><textarea id="eshots" rows="3" placeholder="https://..."></textarea>
+<label>Requisitos do PC (aparece na pagina do jogo)</label><textarea id="ereq" rows="3" placeholder="Processador, placa de video, RAM, espaco"></textarea>
 <label>Capa / banner (jpg ou png)</label><input id="eimg" type="file" accept="image/jpeg,image/png,image/webp">
 <img class="prev" id="eprev" alt="" hidden>
 <p><button id="es">Salvar alteracoes</button></p>
@@ -113,7 +116,7 @@ function preencherEdit(){
  const id=$("ej").value;const g=(CAT.games||[]).find(x=>x.id===id);if(!g)return;
  $("en").value=g.name||"";$("ed").value=g.developer||"";$("ep").value=Number(g.preco)||0;
  $("eprot").checked=!!g.protegido;$("edes").value=g.description||"";
- $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";$("el").value=g.launch||"";
+ $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";$("el").value=g.launch||"";$("ev").value=g.video_url||"";$("eshots").value=(g.screenshots||[]).join("\n");$("ereq").value=g.requisitos||"";
  if(g.capsule_url){$("eprev").src="/"+g.capsule_url.replace(/^\//,"")+"?t="+Date.now();$("eprev").hidden=false}
  else{$("eprev").hidden=true}
  $("eprot-hint").textContent=$("eprot").checked
@@ -229,6 +232,7 @@ $("es").onclick=async()=>{
    g.tags=$("etag").value.split(",").map(t=>t.trim()).filter(Boolean);
    g.changelog=$("ech").value.trim()||g.changelog;
    g.launch=$("el").value.trim()||g.launch||"";
+   g.video_url=$("ev").value.trim();g.screenshots=$("eshots").value.split("\n").map(s=>s.trim()).filter(Boolean);g.requisitos=$("ereq").value.trim();
    if(g.protegido){g.download_url=""}
    else if(!g.download_url||g.download_url.includes("mediafire")){
     g.download_url="https://tss-store.vercel.app/api/baixar-gratis?jogo="+encodeURIComponent(id);

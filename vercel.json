@@ -101,6 +101,10 @@
   ],
   "rewrites": [
     {
+      "source": "/jogo/:id",
+      "destination": "/jogo.html"
+    },
+    {
       "source": "/auth/:acao/:provedor",
       "destination": "/api/auth?acao=:acao&provedor=:provedor"
     },

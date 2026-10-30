@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jogo – TSS The Swift Store</title>
+<meta name="theme-color" content="#0d0c07">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<style>
+:root{--gold:#e6cf4a;--gold2:#c9b53d;--bg:#0d0c07;--panel:#171509;--panel2:#1d1a0c;--line:#2d2910;--text:#efe9c8;--mute:#a49d74;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);background-image:radial-gradient(ellipse at 50% -10%,#3a3210 0,transparent 60%);background-repeat:no-repeat;color:var(--text);font:400 1rem/1.65 "Segoe UI",system-ui,Arial,sans-serif;min-height:100vh}
+a{color:inherit}
+header{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;padding:.75rem clamp(1rem,4vw,3rem);border-bottom:1px solid var(--line)}
+header a{text-decoration:none;font-weight:800;letter-spacing:.12em}
+header a.v{color:var(--gold);font-weight:600;letter-spacing:0}
+main{max-width:1000px;margin:0 auto;padding:1.5rem 1rem 3rem}
+.banner{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:18px;border:1px solid var(--line);background:var(--panel)}
+h1{margin:1.2rem 0 .3rem;font-size:clamp(1.6rem,4vw,2.3rem)}
+.tags span{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:.1rem .7rem;font-size:.8rem;color:var(--gold);margin:0 .3rem .3rem 0}
+.meta{color:var(--mute);font-size:.9rem}
+.grid{display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:1.5rem}
+@media(min-width:820px){.grid{grid-template-columns:2fr 1fr}}
+.box{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:18px;padding:1.2rem 1.3rem}
+.box h2{margin:0 0 .6rem;font-size:1.1rem;color:var(--gold)}
+.box p{margin:.4rem 0}
+.vid{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000}
+.vid iframe,.vid video{position:absolute;inset:0;width:100%;height:100%;border:0}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.7rem}
+.shots img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--line);display:block}
+.price{font-size:1.6rem;font-weight:800;margin:.2rem 0 .8rem}
+.btn{display:block;width:100%;text-align:center;background:linear-gradient(180deg,#f2dc62,var(--gold));color:#141108;font-weight:800;text-decoration:none;padding:.85rem 1.2rem;border-radius:12px;border:0;cursor:pointer;font-size:1rem;font-family:inherit}
+.soon{color:var(--mute);text-align:center}
+.pre{white-space:pre-line}
+.stack>*+*{margin-top:1.2rem}
+.msg{text-align:center;padding:4rem 1rem;color:var(--mute)}
+</style>
+</head>
+<body>
+<header><a href="/">TSS · THE SWIFT STORE</a><a class="v" href="/">← Todos os jogos</a></header>
+<main id="m"><p class="msg">Carregando…</p></main>
+<script>
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return c==="&"?"&amp;":c==="<"?"&lt;":c===">"?"&gt;":c==='"'?"&quot;":"&#39;"})}
+function safe(u){return /^(https:\/\/|\/|[a-z0-9_\-.\/]+$)/i.test(u||"")?u:""}
+function img(u){u=safe(u);return u&&u.charAt(0)!=="/"&&!/^https:/i.test(u)?"/"+u:u}
+function preco(p){var n=Number(p);return!Number.isFinite(n)||n<=0?"Grátis":"R$ "+n.toFixed(2).replace(".",",")}
+function texto(s){return String(s||"").split(/\n/).map(function(l){l=l.trim();if(!l)return"";if(/^#{1,3}\s/.test(l))return"<h3>"+esc(l.replace(/^#{1,3}\s+/,""))+"</h3>";return"<p>"+esc(l)+"</p>"}).join("")}
+function video(u){
+  u=String(u||"").trim();if(!/^https:\/\//i.test(u))return"";
+  var y=u.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
+  if(y)return'<div class="vid"><iframe src="https://www.youtube-nocookie.com/embed/'+y[1]+'" title="Gameplay" allow="accelerometer;encrypted-media;picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+  if(/\.(mp4|webm)(\?|$)/i.test(u))return'<div class="vid"><video src="'+esc(u)+'" controls preload="metadata"></video></div>';
+  return"";
+}
+var id=decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()||"")).replace(/\.html$/,"");
+function pintar(g){
+  document.title=g.name+" – TSS The Swift Store";
+  var pago=!!g.protegido,livre=!pago&&(g.download_url||g.disponivel);
+  var acao;
+  if(g.download_url)acao='<a class="btn" href="'+esc(safe(g.download_url))+'">Baixar grátis</a>';
+  else if(!pago&&g.disponivel)acao='<a class="btn" href="/api/baixar-gratis?jogo='+encodeURIComponent(g.id)+'">Baixar grátis</a>';
+  else if(pago&&g.disponivel!==false)acao='<button class="btn" id="cmp">'+(Number(g.preco)>0?"Comprar com Pix":"Obter grátis")+'</button>';
+  else acao='<p class="soon">Em breve</p>';
+  var tags=(g.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
+  var shots=(g.screenshots||[]).filter(function(u){return /^https:\/\//i.test(u)}).map(function(u){return'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="Captura de tela de '+esc(g.name)+'" loading="lazy"></a>'}).join("");
+  var v=video(g.video_url);
+  var h='<img class="banner" src="'+esc(img(g.banner_url||g.capsule_url))+'" alt="'+esc(g.name)+'">';
+  h+='<h1>'+esc(g.name)+'</h1><div class="tags">'+tags+'</div><div class="meta">por '+esc(g.developer||"TSS")+' · v'+esc(g.version)+(g.size_mb?' · '+esc(g.size_mb)+' MB':'')+'</div>';
+  h+='<div class="grid"><div class="stack">';
+  if(v)h+='<div class="box"><h2>Gameplay</h2>'+v+'</div>';
+  h+='<div class="box"><h2>Sobre o jogo</h2>'+texto(g.description)+'</div>';
+  if(shots)h+='<div class="box"><h2>Capturas de tela</h2><div class="shots">'+shots+'</div></div>';
+  h+='</div><div class="stack"><div class="box"><div class="price">'+(pago?preco(g.preco):livre?"Grátis":"Em breve")+'</div>'+acao+'</div>';
+  if(g.requisitos)h+='<div class="box"><h2>Requisitos do PC</h2><p class="pre">'+esc(g.requisitos)+'</p></div>';
+  if(g.changelog)h+='<div class="box"><h2>Novidades da v'+esc(g.version)+'</h2><p class="pre">'+esc(g.changelog)+'</p></div>';
+  h+='</div></div>';
+  document.getElementById("m").innerHTML=h;
+  var b=document.getElementById("cmp");
+  if(b)b.onclick=function(){location.href="/pagar.html?jogo="+encodeURIComponent(g.id)+"&preco="+encodeURIComponent(g.preco||0)+"&nome="+encodeURIComponent(g.name||"")};
+}
+function nao(){document.getElementById("m").innerHTML='<p class="msg">Jogo não encontrado. <a href="/" style="color:var(--gold)">Voltar à loja</a></p>'}
+fetch("/api/catalogo",{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json()})
+.catch(function(){return fetch("/catalog.json",{cache:"no-cache"}).then(function(r){return r.json()})})
+.then(function(d){var g=(d.games||[]).filter(function(x){return x.id===id})[0];g?pintar(g):nao()})
+.catch(nao);
+</script>
+<script src="/legal.js" defer></script>
+</body>
+</html>
