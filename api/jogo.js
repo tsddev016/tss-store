@@ -3,6 +3,20 @@ const R = require("./_release");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 module.exports = async (req, res) => {
+  // /sitemap.xml tambem passa por aqui (o plano gratis da Vercel limita a 12 funcoes).
+  if (req.query && req.query.sitemap) {
+    const h = req.headers["x-forwarded-host"] || req.headers.host || "tss-store.vercel.app";
+    const urls = ["/", "/sobre", "/suporte", "/termos", "/privacidade", "/reembolso"];
+    try {
+      const cat = await R.lerCatalogo();
+      ((cat && cat.games) || []).forEach((g) => { if (g && g.id) urls.push("/jogo/" + encodeURIComponent(g.id)); });
+    } catch (e) { /* so as paginas fixas */ }
+    const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+      urls.map((u) => "  <url><loc>https://" + h + u + "</loc></url>").join("\n") + "\n</urlset>\n";
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=600");
+    return res.status(200).send(xml);
+  }
   const id = String((req.query && req.query.id) || "").slice(0, 80);
   const host = req.headers["x-forwarded-host"] || req.headers.host || "tss-store.vercel.app";
   const origin = "https://" + host;

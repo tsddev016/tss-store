@@ -102,7 +102,7 @@
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "destination": "/api/sitemap"
+      "destination": "/api/jogo?sitemap=1"
     },
     {
       "source": "/jogo/:id",
