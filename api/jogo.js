@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const L = require("./_cofre");
 const D = require("./_discord");
 const T = require("./_tickets");
+const M = require("./_moderacao");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------- Bot do Discord (slash commands) em /api/discord ----------
@@ -100,6 +101,7 @@ async function comando(d, it) {
     return ok ? "Cupom **" + cod + "** apagado." : "Esse cupom nao existe.";
   }
   if (d.name === "gerar-ticket") return T.gerarPainel(it || {}, o);
+  if (M.NOMES.includes(d.name)) return M.executar(d.name, o, it || {});
   return "Comando desconhecido.";
 }
 const resp = (res, txt) => res.status(200).json({ type: 4, data: { content: String(txt).slice(0, 1900), flags: 64, allowed_mentions: { parse: [] } } });
