@@ -86,6 +86,27 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <div class="card"><h2>Link do instalador do Hub</h2><p class="mut">O link do TSS Hub no Mediafire. Aparece na pagina de resgate.</p>
 <input id="hu" placeholder="https://www.mediafire.com/…"><p><button id="hb">Salvar link</button></p><div class="msg" id="hm"></div></div></section>
 
+
+<section id="t-cupons" hidden>
+<div class="card"><h2>Criar ou editar cupom</h2><p class="mut">O desconto e calculado no servidor na hora do Pix. O preco final nunca fica abaixo de R$ 1,00. Se usar um codigo que ja existe, ele e atualizado.</p>
+<div class="row"><div><label>Codigo (ex.: BACK3)</label><input id="cp-cod" maxlength="24"></div>
+<div><label>Tipo</label><select id="cp-tipo"><option value="percent">Porcentagem (%)</option><option value="fixo">Valor fixo (R$)</option></select></div>
+<div><label>Desconto</label><input id="cp-val" type="number" min="1" step="0.01"></div>
+<div><label>Vale para</label><select id="cp-jogo"></select></div></div>
+<div class="row"><div><label>Valido ate (opcional)</label><input id="cp-ate" type="date"></div>
+<div><label>Limite de usos (0 = sem limite)</label><input id="cp-max" type="number" min="0" value="0"></div></div>
+<label class="chk"><input type="checkbox" id="cp-ativo" checked><span>Ativo</span></label>
+<button id="cp-salvar" style="margin-top:12px">Salvar cupom</button><div class="msg" id="cp-m"></div></div>
+<div class="card"><h2>Cupons</h2><div class="sc"><table id="cp-t"></table></div></div></section>
+
+<section id="t-loja" hidden>
+<div class="card"><h2>Cores da loja</h2><p class="mut">Precisa do token do GitHub (Contents: read/write no tss-store), o mesmo usado em Jogos. A loja atualiza em cerca de 1 minuto.</p>
+<div class="row"><div><label>Destaque (dourado)</label><input type="color" id="lc-gold"></div><div><label>Destaque escuro</label><input type="color" id="lc-gold2"></div><div><label>Fundo</label><input type="color" id="lc-bg"></div><div><label>Cartoes</label><input type="color" id="lc-panel"></div><div><label>Texto</label><input type="color" id="lc-text"></div></div></div>
+<div class="card"><h2>Faixa de aviso no topo</h2><label class="chk"><input type="checkbox" id="la-ativo"><span>Mostrar faixa</span></label>
+<label>Texto (ex.: Backrooms por R$ 3 ate domingo!)</label><input id="la-texto" maxlength="140"><label>Link ao clicar (opcional, https://... ou /jogo/id)</label><input id="la-link"></div>
+<div class="card"><h2>Jogo em destaque na pagina inicial</h2><select id="ld-jogo"></select></div>
+<div class="card"><button id="lj-salvar">Salvar aparencia</button> <button class="s" id="lj-padrao">Voltar ao padrao</button><div class="msg" id="lj-m"></div></div></section>
+
 <section id="t-integra" hidden><div class="card"><h2>Integracao Game Market</h2>
 <p>URL do webhook (cadastre na Game Market, com o seu segredo no final):</p><div class="k" style="font-size:14px" id="wu"></div>
 <p class="mut">Eventos: marque <b>sale.processing</b>, <b>order.completed</b> e <b>order.cancelled</b>. O segredo e WEBHOOK_SECRET na Vercel.</p></div>
@@ -140,8 +161,8 @@ $("eprot").onchange=()=>{
   ?"Marcado = pago (Mercado Pago + chave de ativacao)."
   :"Desmarcado = gratis (download direto pelo Hub/site).";
 };
-const TABS=[["chaves","Chaves"],["pedidos","Pedidos"],["compras","Compras"],["gerar","Gerar chaves"],["jogos","Jogos"],["publicar","Publicar"],["integra","Integracao"]];
-function aba(n){TABS.forEach(([i])=>{$("t-"+i).hidden=i!==n});[...$("tabs").children].forEach((b,j)=>b.className=TABS[j][0]===n?"on":"")}
+const TABS=[["chaves","Chaves"],["pedidos","Pedidos"],["compras","Compras"],["gerar","Gerar chaves"],["jogos","Jogos"],["publicar","Publicar"],["integra","Integracao"],["cupons","Cupons"],["loja","Aparencia"]];
+function aba(n){if(n==="cupons")carregarCupons();if(n==="loja")carregarLoja();TABS.forEach(([i])=>{$("t-"+i).hidden=i!==n});[...$("tabs").children].forEach((b,j)=>b.className=TABS[j][0]===n?"on":"")}
 async function entrar(){SEN=$("pw").value;try{await api("entrar");sessionStorage.setItem("tss_adm",SEN);$("login").hidden=true;$("app").hidden=false;
  $("tabs").replaceChildren(...TABS.map(([i,t])=>{const b=el("button",{},t);b.onclick=()=>aba(i);return b}));aba("chaves");
  $("wu").textContent=location.origin+"/api/compra?segredo=SEU_SEGREDO";
@@ -352,4 +373,43 @@ $("rb").onclick=async()=>{
    })]));
   say("rm",achados.length?achados.length+" arquivo(s) fora do catalogo.":"Tudo do cofre ja esta no catalogo.",achados.length?"":"ok");
  }catch(e){say("rm",e.message,"err")}b.disabled=false};
+
+/* ---- cupons ---- */
+async function carregarCupons(){
+ const sel=$("cp-jogo");sel.replaceChildren(el("option",{value:""},"Todos os jogos pagos"),...((CAT&&CAT.games)||[]).filter(g=>g.protegido).map(g=>el("option",{value:g.id},g.name)));
+ const d=await api("cupons");
+ tabela($("cp-t"),["Codigo","Desconto","Jogo","Validade","Usos","Estado",""],d.cupons.map(c=>[el("code",{},c.codigo),c.tipo==="fixo"?"R$ "+Number(c.valor).toFixed(2).replace(".",","):c.valor+"%",c.jogo||"todos",c.ate||"sem prazo",c.usos+(c.max_usos?"/"+c.max_usos:""),c.ativo?el("span",{className:"ok"},"ativo"):el("span",{className:"err"},"desligado"),
+  el("span",{},btn("Editar",async()=>{$("cp-cod").value=c.codigo;$("cp-tipo").value=c.tipo;$("cp-val").value=c.valor;$("cp-jogo").value=c.jogo;$("cp-ate").value=c.ate;$("cp-max").value=c.max_usos;$("cp-ativo").checked=c.ativo;window.scrollTo(0,0)}),btn("Apagar",async()=>{if(confirm("Apagar o cupom "+c.codigo+"?"))await api("cupom_apagar",{codigo:c.codigo})}))]));
+}
+$("cp-salvar").onclick=async()=>{try{await api("cupom_salvar",{codigo:$("cp-cod").value,tipo:$("cp-tipo").value,valor:$("cp-val").value,jogo:$("cp-jogo").value,ate:$("cp-ate").value,max_usos:$("cp-max").value,ativo:$("cp-ativo").checked});say("cp-m","Cupom salvo.","ok");await carregarCupons()}catch(e){say("cp-m",e.message,"err")}};
+/* ---- aparencia ---- */
+const LOJA_PADRAO={cores:{gold:"#e6cf4a",gold2:"#c9b53d",bg:"#0d0c07",panel:"#171509",text:"#efe9c8"},anuncio:{ativo:false,texto:"",link:""},destaque:{jogo:""}};
+async function lerLoja(){
+ const r=await gh(`/repos/${OW}/${ST}/contents/public/loja.json?ref=main`);
+ if(r.status===404)return{loja:JSON.parse(JSON.stringify(LOJA_PADRAO)),sha:null};
+ if(!r.ok)throw new Error("Nao consegui ler a aparencia ("+r.status+"). Confira o token.");
+ const j=await r.json();return{loja:Object.assign(JSON.parse(JSON.stringify(LOJA_PADRAO)),JSON.parse(unb64(j.content))),sha:j.sha};
+}
+function pintarLoja(l){
+ for(const k of["gold","gold2","bg","panel","text"])$("lc-"+k).value=(l.cores&&l.cores[k])||LOJA_PADRAO.cores[k];
+ const a=l.anuncio||{};$("la-ativo").checked=!!a.ativo;$("la-texto").value=a.texto||"";$("la-link").value=a.link||"";
+ $("ld-jogo").replaceChildren(el("option",{value:""},"Nenhum"),...((CAT&&CAT.games)||[]).filter(g=>g.disponivel).map(g=>el("option",{value:g.id},g.name)));
+ $("ld-jogo").value=(l.destaque&&l.destaque.jogo)||"";
+}
+async function carregarLoja(){try{pintarLoja((await lerLoja()).loja)}catch(e){pintarLoja(LOJA_PADRAO);say("lj-m",e.message,"err")}}
+async function gravarLoja(obj){
+ for(let t=0;t<4;t++){
+  const{sha}=await lerLoja();
+  const r=await gh(`/repos/${OW}/${ST}/contents/public/loja.json`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:"Aparencia da loja (painel)",content:b64(JSON.stringify(obj,null,2)+"\n"),sha:sha||undefined})});
+  if(r.ok)return;
+  if(r.status===409||r.status===422){await dorme(400*(t+1));continue}
+  throw new Error("Nao consegui gravar (" +r.status+"). Confira se o token tem Contents: read/write no tss-store.");
+ }
+ throw new Error("A aparencia mudou ao mesmo tempo. Tente de novo.");
+}
+$("lj-salvar").onclick=async()=>{try{
+ const cores={};for(const k of["gold","gold2","bg","panel","text"])cores[k]=$("lc-"+k).value;
+ await gravarLoja({cores,anuncio:{ativo:$("la-ativo").checked,texto:$("la-texto").value.trim(),link:$("la-link").value.trim()},destaque:{jogo:$("ld-jogo").value}});
+ say("lj-m","Salvo! A loja atualiza em cerca de 1 minuto.","ok")}catch(e){say("lj-m",e.message,"err")}};
+$("lj-padrao").onclick=async()=>{if(!confirm("Voltar cores, faixa e destaque ao padrao?"))return;try{await gravarLoja(LOJA_PADRAO);pintarLoja(LOJA_PADRAO);say("lj-m","Padrao restaurado.","ok")}catch(e){say("lj-m",e.message,"err")}};
 </script></div></body></html>

@@ -50,7 +50,7 @@ module.exports = async (req, res) => {
     const g = cat && (cat.games || []).find((x) => x.id === jogo);
     if (!g || !g.protegido) throw new L.Falha(400, "Jogo do pagamento nao encontrado.", "sem_jogo");
     const preco = Number(g.preco), pago = Number(pay.transaction_amount);
-    if (!Number.isFinite(preco) || preco <= 0 || !(pago + 0.005 >= preco)) {
+    if (!Number.isFinite(preco) || preco <= 0 || !(pago + 0.005 >= L.precoEsperado(pay, preco))) {
       throw new L.Falha(400, "O valor pago nao confere com o preco do jogo. Fale com o suporte com o numero do pedido.", "valor");
     }
     // Compra feita logado: so a mesma conta ve a chave aqui (as demais pegam em /resgatar com pedido + e-mail).

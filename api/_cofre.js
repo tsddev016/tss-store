@@ -54,12 +54,12 @@ async function exigirAdmin(senha) {
 async function lerChaves() {
   if (!process.env.GH_TOKEN) throw new Falha(500, "Servidor ainda sem GH_TOKEN configurado.", "config");
   const r = await fetch(`${GH}/repos/${COFRE}/contents/chaves.json`, { headers: hdr(), cache: "no-store" });
-  if (r.status === 404) return { data: { keys: {}, pedidos: {}, log: [], contas: {}, reembolsos: {} }, sha: null };
+  if (r.status === 404) return { data: { keys: {}, pedidos: {}, log: [], contas: {}, reembolsos: {}, cupons: {} }, sha: null };
   if (!r.ok) throw new Falha(503, "Cofre da TSS indisponivel no momento. Tente de novo.", "cofre");
   const j = await r.json();
   const data = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
   data.keys = data.keys || {}; data.pedidos = data.pedidos || {}; data.log = data.log || [];
-  data.contas = data.contas || {}; data.reembolsos = data.reembolsos || {};
+  data.contas = data.contas || {}; data.reembolsos = data.reembolsos || {}; data.cupons = data.cupons || {};
   return { data, sha: j.sha };
 }
 
@@ -193,7 +193,34 @@ function responder(res, e) {
   return res.status(500).json({ ok: false, erro: "Erro interno no servidor da TSS.", codigo: "interno" });
 }
 
-module.exports = { Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
+// Cupom de desconto: valida e calcula o preco final (sempre no servidor; o navegador so mostra).
+function calcularCupom(data, codigo, jogo, preco) {
+  const cod = norm(codigo);
+  if (!cod) return null;
+  const c = (data.cupons || {})[cod];
+  if (!c || c.ativo === false) throw new Falha(400, "Cupom invalido ou expirado.", "cupom");
+  if (c.jogo && c.jogo !== jogo) throw new Falha(400, "Este cupom nao vale para este jogo.", "cupom");
+  if (c.ate && Date.now() > new Date(c.ate + "T23:59:59-03:00").getTime()) throw new Falha(400, "Este cupom expirou.", "cupom");
+  if (Number(c.max_usos) > 0 && (Number(c.usos) || 0) >= Number(c.max_usos)) throw new Falha(400, "Este cupom ja atingiu o limite de usos.", "cupom");
+  const v = Number(c.valor);
+  if (!(v > 0)) throw new Falha(400, "Cupom invalido.", "cupom");
+  let final = c.tipo === "fixo" ? preco - v : preco * (1 - v / 100);
+  final = Math.max(1, Math.round(final * 100) / 100);
+  if (!(final < preco)) throw new Falha(400, "Este cupom nao gera desconto neste jogo.", "cupom");
+  return { codigo: cod, preco_final: final, desconto: Math.round((preco - final) * 100) / 100 };
+}
+
+// Preco que o pagamento deveria ter: o do catalogo, ou o preco com cupom que o proprio servidor gravou no pagamento.
+function precoEsperado(pay, preco) {
+  try {
+    const m = (pay && pay.metadata) || {};
+    const f = Number(m.preco_final);
+    if (m.cupom && Number.isFinite(f) && f >= 1 && f < preco) return f;
+  } catch (e) { /* usa o preco do catalogo */ }
+  return preco;
+}
+
+module.exports = { calcularCupom, precoEsperado, Falha, sha, norm, sleep, agora, corpo, seguro, exigirAdmin, lerChaves, gravar, mutar,
   chaveAleatoria, chaveDoPedido, idPedido, TERMOS_VERSAO, hashEmail, normalizarCpf, cpfValido,
   codigoRecuperacao, hashRecuperacao, acharPorRecuperacao, entregarRecuperacao,
   registrarPedido, responder, MAX_PADRAO, idConta };

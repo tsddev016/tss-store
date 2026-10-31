@@ -1,0 +1,17 @@
+{
+  "cores": {
+    "gold": "#e6cf4a",
+    "gold2": "#c9b53d",
+    "bg": "#0d0c07",
+    "panel": "#171509",
+    "text": "#efe9c8"
+  },
+  "anuncio": {
+    "ativo": false,
+    "texto": "",
+    "link": ""
+  },
+  "destaque": {
+    "jogo": ""
+  }
+}

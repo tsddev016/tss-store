@@ -72,7 +72,7 @@ async function processar(req, semSegredo) {
     const preco = g ? Number(g.preco) : 0;
     nomeJogo = g ? g.name : "";
     if (!g || !g.protegido) motivoIgn = "jogo desconhecido";
-    else if (!(preco > 0) || !(pago + 0.005 >= preco)) motivoIgn = "valor nao confere";
+    else if (!(preco > 0) || !(pago + 0.005 >= L.precoEsperado(pay, preco))) motivoIgn = "valor nao confere";
     else acao = "ativar";
   } else if (["refunded", "charged_back", "cancelled"].includes(status)) acao = "revogar";
 

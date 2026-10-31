@@ -26,6 +26,7 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
 .lab{display:block;text-align:left;color:var(--mute);font-size:.85rem;margin-top:8px}
 .login a{display:block;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px;text-decoration:none;color:var(--text);font-weight:700;background:#0f0e08}
 .login a:hover{border-color:var(--gold2)}
+.cup{display:flex;gap:8px;margin:10px 0 0}.cup input{flex:1;min-width:0;padding:10px;border-radius:8px;border:1px solid #2d2910;background:#0f0e07;color:inherit;font:inherit;text-transform:uppercase}.cup button{width:auto;padding:0 14px}
 </style></head><body>
 <div class="card" id="box">
   <h1 id="titulo">Pagamento Pix</h1>
@@ -39,6 +40,8 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
 
   <div id="form" hidden>
     <p class="mut" id="quem"></p>
+    <div class="cup"><input id="cup" placeholder="Cupom de desconto" maxlength="30" autocomplete="off" aria-label="Cupom de desconto"><button class="ghost" id="aplicar" type="button">Aplicar</button></div>
+    <p class="mut" id="cupmsg"></p>
     <label class="chk"><input type="checkbox" id="aceite"><span>Li e aceito os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>, a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a> e a <a href="/reembolso" target="_blank" rel="noopener">Política de Reembolso</a> (7 dias para desistir). Tenho 18 anos ou mais, ou autorização do meu responsável.</span></label>
     <button id="gerar" disabled>Gerar Pix</button>
   </div>
@@ -99,6 +102,18 @@ function iniciarFluxo(){
     el("quem").textContent="Comprando como "+(d.conta.nome||"jogador")+" ("+d.conta.provedor+")";compradorNome=d.perfil.nome_completo||d.conta.nome||"";compradorEmail=d.perfil.email||"";
   });
 }
+var cupomAplicado="";
+el("aplicar").onclick=function(){
+  var v=el("cup").value.trim();
+  if(!v){cupomAplicado="";setPreco(preco);el("cupmsg").textContent="";return}
+  el("aplicar").disabled=true;el("cupmsg").textContent="Verificando…";
+  fetch("/api/criar-pagamento",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({acao:"cupom",jogo:jogo,cupom:v})})
+  .then(function(r){return r.json()}).then(function(d){
+    el("aplicar").disabled=false;
+    if(d&&d.ok){cupomAplicado=v;setPreco(d.preco_final);el("cupmsg").className="mut ok";el("cupmsg").textContent="Cupom "+d.cupom+" aplicado: de R$ "+d.preco_original.toFixed(2).replace(".",",")+" por R$ "+d.preco_final.toFixed(2).replace(".",",")}
+    else{cupomAplicado="";setPreco(preco);el("cupmsg").className="mut err";el("cupmsg").textContent=(d&&d.erro)||"Cupom invalido."}
+  }).catch(function(){el("aplicar").disabled=false;el("cupmsg").textContent="Não consegui verificar o cupom."});
+};
 el("aceite").onchange=function(){el("gerar").disabled=!el("aceite").checked};
 
 function say(t,cls){var s=document.getElementById("st");s.className="status "+(cls||"");s.textContent=t||""}
@@ -187,7 +202,7 @@ document.getElementById("gerar").onclick=function(){
     method:"POST",
     headers:{"Content-Type":"application/json"},
     credentials:"same-origin",
-    body:JSON.stringify({jogo:jogo,nome:compradorNome,email:compradorEmail,aceite_termos:window.TSS_TERMOS_VERSAO||"2026-10-29",maior_18:el("aceite").checked})
+    body:JSON.stringify({jogo:jogo,nome:compradorNome,email:compradorEmail,aceite_termos:window.TSS_TERMOS_VERSAO||"2026-10-29",maior_18:el("aceite").checked,cupom:cupomAplicado})
   }).then(function(r){return r.json()}).then(function(d){
     if(!d.ok){if(d.codigo==="login"){location.reload();return}throw new Error(d.erro||"Falha ao criar Pix")}
     paymentId=d.payment_id;

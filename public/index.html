@@ -9,6 +9,7 @@
 <meta name="author" content="TS_KKJJ">
 <meta name="robots" content="index, follow, max-image-preview:large">
 <meta name="theme-color" content="#0d0c07">
+<script src="/tema.js" defer></script>
 <link rel="canonical" href="https://tss-store.vercel.app/">
 <link rel="icon" type="image/svg+xml" href="/icon.svg">
 <meta property="og:type" content="website">
@@ -115,6 +116,7 @@ footer.rod{text-align:left;padding:2.5rem clamp(1rem,4vw,3rem) 2rem}
 .rg a:hover{color:var(--gold);text-decoration:none}
 .rg p{margin:0;color:var(--mute);max-width:17rem}
 .cp{max-width:1120px;margin:2rem auto 0;padding-top:1.2rem;border-top:1px solid var(--line);color:var(--mute);font-size:.8rem;text-align:center}
+.dst{display:grid;grid-template-columns:1.2fr 1fr;border:1px solid var(--gold2);border-radius:18px;overflow:hidden;background:linear-gradient(180deg,var(--panel2),var(--panel));text-decoration:none;margin:0 0 2rem;transition:box-shadow .18s}.dst:hover{box-shadow:0 14px 34px rgba(0,0,0,.45)}.dst img{width:100%;height:100%;min-height:220px;object-fit:cover;display:block}.dst .t{padding:1.6rem;display:flex;flex-direction:column;justify-content:center;gap:.6rem}.dst small{color:var(--gold);letter-spacing:.2em;font-weight:700}.dst h3{margin:0;font-size:1.7rem;line-height:1.2}.dst p{margin:0;color:var(--mute)}@media(max-width:700px){.dst{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -132,6 +134,7 @@ footer.rod{text-align:left;padding:2.5rem clamp(1rem,4vw,3rem) 2rem}
 </section>
 
 <main>
+  <div id="destaque" hidden></div>
   <h2 id="jogos">JOGOS</h2>
   <div class="filtros" id="filtros" hidden><input id="fq" type="search" placeholder="Buscar jogo…" aria-label="Buscar jogo"><div id="ftags"></div></div>
   <div class="grid" id="grid" aria-live="polite"><div class="sk"></div><div class="sk"></div></div>
@@ -199,6 +202,15 @@ function seo(g){
     document.head.appendChild(s);
   }catch(e){}
 }
+var lojaCfg=null;
+function destacar(){
+  var box=document.getElementById("destaque"),id=lojaCfg&&lojaCfg.destaque&&lojaCfg.destaque.jogo,g=null;
+  for(var i=0;i<todos.length;i++){if(todos[i].id===id)g=todos[i]}
+  if(!g){box.hidden=true;box.innerHTML="";return}
+  box.hidden=false;
+  box.innerHTML='<a class="dst" href="/jogo/'+encodeURIComponent(g.id)+'"><img src="'+esc(safe(g.banner_url||g.capsule_url))+'" alt="'+esc(g.name)+'"><div class="t"><small>EM DESTAQUE</small><h3>'+esc(g.name)+'</h3><p>'+esc(g.description)+'</p><span class="btn" style="align-self:flex-start">Ver o jogo</span></div></a>';
+}
+fetch("/loja.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():null}).then(function(l){lojaCfg=l;destacar()}).catch(function(){});
 var todos=[],fq="",ftag="";
 function norm(s){return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")}
 function filtrados(){return todos.filter(function(x){var ok=!fq||norm(x.name+" "+x.description+" "+(x.tags||[]).join(" ")).indexOf(fq)>-1;var t=!ftag||(x.tags||[]).indexOf(ftag)>-1;return ok&&t})}
@@ -224,7 +236,7 @@ function pintar(d){
   var g=(d.games||[]).filter(function(x){return x.disponivel===true}),grid=document.getElementById("grid"),msg=document.getElementById("msg");
   if(!g.length){grid.innerHTML="";msg.style.display="block";msg.textContent="Nenhum jogo publicado ainda.";return}
   msg.style.display="none";
-  todos=g;montarFiltros();redesenhar();
+  todos=g;montarFiltros();redesenhar();destacar();
   if(!seoFeito){seoFeito=true;seo(g)}
 }
 /* Olha o catalogo e o cofre a cada 5 s; so redesenha quando algo mudou. */

@@ -118,6 +118,40 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, chave: r.chave, novo: r.novo });
     }
 
+    if (acao === "cupons") {
+      const { data } = await L.lerChaves();
+      const cupons = Object.entries(data.cupons).map(([c, x]) => ({ codigo: c, tipo: x.tipo, valor: x.valor, jogo: x.jogo || "", ate: x.ate || "", max_usos: x.max_usos || 0, usos: x.usos || 0, ativo: x.ativo !== false, criado: x.criado || "" }))
+        .sort((a, c) => String(c.criado).localeCompare(String(a.criado)));
+      return res.status(200).json({ ok: true, cupons });
+    }
+
+    if (acao === "cupom_salvar") {
+      const cod = L.norm(b.codigo);
+      if (cod.length < 3 || cod.length > 24) throw new L.Falha(400, "O codigo deve ter de 3 a 24 letras/numeros.", "pedido");
+      const tipo = b.tipo === "fixo" ? "fixo" : "percent";
+      const valor = Number(b.valor);
+      if (tipo === "percent" && !(valor >= 1 && valor <= 90)) throw new L.Falha(400, "Desconto em % deve ser de 1 a 90.", "pedido");
+      if (tipo === "fixo" && !(valor > 0 && valor <= 500)) throw new L.Falha(400, "Desconto em R$ deve ser de 0,01 a 500.", "pedido");
+      const jogo = String(b.jogo || "").toLowerCase();
+      if (jogo && !JOGO_OK.test(jogo)) throw new L.Falha(400, "Jogo invalido.", "pedido");
+      const ate = String(b.ate || "");
+      if (ate && !/^\d{4}-\d{2}-\d{2}$/.test(ate)) throw new L.Falha(400, "Data de validade invalida.", "pedido");
+      const max = Math.floor(Number(b.max_usos)) || 0;
+      if (max < 0 || max > 100000) throw new L.Falha(400, "Limite de usos invalido.", "pedido");
+      await L.mutar((data) => {
+        const ant = data.cupons[cod] || {};
+        data.cupons[cod] = { tipo, valor: Math.round(valor * 100) / 100, jogo, ate, max_usos: max, usos: Number(ant.usos) || 0, ativo: b.ativo !== false, criado: ant.criado || L.agora() };
+        return { salvar: true, resultado: true };
+      }, "cupom salvo: " + cod);
+      return res.status(200).json({ ok: true });
+    }
+
+    if (acao === "cupom_apagar") {
+      const cod = L.norm(b.codigo);
+      await L.mutar((data) => { const ex = !!data.cupons[cod]; delete data.cupons[cod]; return { salvar: ex, resultado: ex }; }, "cupom apagado: " + cod);
+      return res.status(200).json({ ok: true });
+    }
+
     throw new L.Falha(400, "Acao desconhecida.", "pedido");
   } catch (e) { return L.responder(res, e); }
 };

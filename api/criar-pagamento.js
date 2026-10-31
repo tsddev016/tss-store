@@ -33,9 +33,25 @@ module.exports = async (req, res) => {
     const preco = Number(g.preco);
     if (!Number.isFinite(preco) || preco < 1) throw new L.Falha(400, "Este jogo ainda nao tem preco definido. Tente de novo mais tarde.", "sem_preco");
 
+    // Pre-visualizacao do cupom (nao cria pagamento).
+    if (String(b.acao || "") === "cupom") {
+      const { data: dc } = await L.lerChaves();
+      const x = L.calcularCupom(dc, b.cupom, jogo, preco);
+      if (!x) throw new L.Falha(400, "Digite um cupom.", "cupom");
+      return res.status(200).json({ ok: true, cupom: x.codigo, preco_original: preco, preco_final: x.preco_final });
+    }
+
     // Aceite dos termos (prova de consentimento) + maioridade
     if (String(b.aceite_termos) !== L.TERMOS_VERSAO || b.maior_18 !== true) {
       throw new L.Falha(400, "Aceite os Termos de Uso, a Politica de Privacidade e a Politica de Reembolso para continuar.", "aceite");
+    }
+
+    // Cupom (opcional): o desconto e recalculado aqui, no servidor.
+    let precoPag = preco, cupomX = null;
+    if (String(b.cupom || "").trim()) {
+      const { data: dc } = await L.lerChaves();
+      cupomX = L.calcularCupom(dc, b.cupom, jogo, preco);
+      if (cupomX) precoPag = cupomX.preco_final;
     }
 
     // Dados do comprador: usa o que veio no formulario; se vier vazio, usa o que ja esta salvo na conta.
@@ -70,7 +86,7 @@ module.exports = async (req, res) => {
     const expira = new Date(Date.now() + minutos * 60 * 1000).toISOString();
 
     const body = {
-      transaction_amount: Number(preco.toFixed(2)),
+      transaction_amount: Number(precoPag.toFixed(2)),
       description: "TSS - chave de ativacao (" + jogo + ")",
       payment_method_id: "pix",
       external_reference: pedidoId,
@@ -79,7 +95,7 @@ module.exports = async (req, res) => {
       // Qualidade da integracao MP
       statement_descriptor: "TSS STORE",
       binary_mode: true,
-      metadata: { jogo, email, origem: "tss-store-pix", site: base, conta: sess ? sess.uid : "", aceite: L.TERMOS_VERSAO },
+      metadata: { jogo, email, origem: "tss-store-pix", site: base, conta: sess ? sess.uid : "", aceite: L.TERMOS_VERSAO, cupom: cupomX ? cupomX.codigo : "", preco_final: precoPag },
       additional_info: {
         items: [{
           id: jogo,
@@ -87,7 +103,7 @@ module.exports = async (req, res) => {
           description: "Chave de ativacao digital",
           category_id: "digital_games",
           quantity: 1,
-          unit_price: Number(preco.toFixed(2)),
+          unit_price: Number(precoPag.toFixed(2)),
         }],
       },
       // O Mercado Pago exige "payer" (com email) mesmo em compra como visitante.
@@ -116,6 +132,12 @@ module.exports = async (req, res) => {
       throw new L.Falha(502, String(msg), "mp");
     }
 
+    if (cupomX) {
+      try {
+        await L.mutar((d) => { const c = (d.cupons || {})[cupomX.codigo]; if (c) c.usos = (Number(c.usos) || 0) + 1; return { salvar: !!c, resultado: true }; }, "cupom: uso " + cupomX.codigo);
+      } catch (e) { /* o pagamento ja foi criado; contar o uso e so um extra */ }
+    }
+
     const td = (data.point_of_interaction && data.point_of_interaction.transaction_data) || {};
     const qr = td.qr_code || "";
     const qrB64 = td.qr_code_base64 || "";
@@ -126,7 +148,7 @@ module.exports = async (req, res) => {
       pedido: pedidoId,
       payment_id: data.id,
       status: data.status,
-      preco,
+      preco: precoPag,
       expira: data.date_of_expiration || expira,
       minutos,
       qr_code: qr,
