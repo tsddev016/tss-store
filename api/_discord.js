@@ -50,4 +50,23 @@ function avisarEstorno({ pedido, status }) {
   });
 }
 
-module.exports = { avisarCompra, avisarEstorno };
+function avisarAdmin(titulo, texto) {
+  return enviar({ title: lim(titulo, 100), color: 0xe6cf4a, description: lim(texto, 300), timestamp: new Date().toISOString() });
+}
+
+// Comandos do bot (registrados pelo painel: Integracao > Registrar comandos).
+const COMANDOS = [
+  { name: "vendas", description: "Resumo de vendas, chaves em uso e reembolsos", type: 1 },
+  { name: "chave", description: "Gerar chaves avulsas de um jogo", type: 1, options: [
+    { type: 3, name: "jogo", description: "ID do jogo (ex.: backrooms)", required: true },
+    { type: 4, name: "qtd", description: "Quantidade (1 a 5)", min_value: 1, max_value: 5 } ] },
+  { name: "cupom", description: "Criar ou atualizar um cupom de desconto", type: 1, options: [
+    { type: 3, name: "codigo", description: "Codigo (ex.: BACK3)", required: true },
+    { type: 3, name: "tipo", description: "Tipo do desconto", required: true, choices: [{ name: "Porcentagem (%)", value: "percent" }, { name: "Valor fixo (R$)", value: "fixo" }] },
+    { type: 10, name: "valor", description: "Quanto desconta", required: true },
+    { type: 3, name: "jogo", description: "ID do jogo (vazio = todos)" },
+    { type: 3, name: "ate", description: "Validade AAAA-MM-DD" },
+    { type: 4, name: "max_usos", description: "Limite de usos (0 = sem limite)" } ] },
+];
+
+module.exports = { avisarCompra, avisarEstorno, avisarAdmin, COMANDOS };

@@ -107,7 +107,9 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <div class="card"><h2>Jogo em destaque na pagina inicial</h2><select id="ld-jogo"></select></div>
 <div class="card"><button id="lj-salvar">Salvar aparencia</button> <button class="s" id="lj-padrao">Voltar ao padrao</button><div class="msg" id="lj-m"></div></div></section>
 
-<section id="t-integra" hidden><div class="card"><h2>Integracao Game Market</h2>
+<section id="t-integra" hidden>
+<div class="card"><h2>Bot do Discord</h2><p class="mut">Comandos: /vendas, /chave e /cupom (so para os IDs em DISCORD_ADMIN_IDS). Endereco para colar no Discord Developer Portal (Interactions Endpoint URL): <code id="dc-url"></code></p>
+<button id="dc-reg">Registrar comandos do bot</button><div class="msg" id="dc-m"></div></div><div class="card"><h2>Integracao Game Market</h2>
 <p>URL do webhook (cadastre na Game Market, com o seu segredo no final):</p><div class="k" style="font-size:14px" id="wu"></div>
 <p class="mut">Eventos: marque <b>sale.processing</b>, <b>order.completed</b> e <b>order.cancelled</b>. O segredo e WEBHOOK_SECRET na Vercel.</p></div>
 <div class="card"><h2>Ultimos avisos recebidos</h2><div class="sc"><table id="tl"></table></div></div></section>
@@ -412,4 +414,6 @@ $("lj-salvar").onclick=async()=>{try{
  await gravarLoja({cores,anuncio:{ativo:$("la-ativo").checked,texto:$("la-texto").value.trim(),link:$("la-link").value.trim()},destaque:{jogo:$("ld-jogo").value}});
  say("lj-m","Salvo! A loja atualiza em cerca de 1 minuto.","ok")}catch(e){say("lj-m",e.message,"err")}};
 $("lj-padrao").onclick=async()=>{if(!confirm("Voltar cores, faixa e destaque ao padrao?"))return;try{await gravarLoja(LOJA_PADRAO);pintarLoja(LOJA_PADRAO);say("lj-m","Padrao restaurado.","ok")}catch(e){say("lj-m",e.message,"err")}};
+$("dc-url").textContent=location.origin+"/api/discord";
+$("dc-reg").onclick=async()=>{try{const r=await api("discord_registrar");say("dc-m",r.aviso,"ok")}catch(e){say("dc-m",e.message,"err")}};
 </script></div></body></html>

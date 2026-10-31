@@ -101,6 +101,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/discord",
+      "destination": "/api/jogo?discord=1"
+    },
+    {
       "source": "/sitemap.xml",
       "destination": "/api/jogo?sitemap=1"
     },

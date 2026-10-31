@@ -1,5 +1,6 @@
 // Painel do administrador (API). Toda acao exige ADMIN_PASSWORD.
 const L = require("./_cofre");
+const D = require("./_discord");
 
 const JOGO_OK = /^[a-z0-9_-]{1,40}$/;
 
@@ -104,6 +105,7 @@ module.exports = async (req, res) => {
         d.reembolsos[pid] = Object.assign({ pedido: pid, em: L.agora() }, d.reembolsos[pid] || {}, { estado: "reembolsado", feito_em: L.agora() });
         return { salvar: true, resultado: true };
       }, "sentinela: reembolso");
+      await D.avisarAdmin("Reembolso realizado", "Pedido `" + pid + "`");
       return res.status(200).json({ ok: true, aviso });
     }
 
@@ -143,6 +145,7 @@ module.exports = async (req, res) => {
         data.cupons[cod] = { tipo, valor: Math.round(valor * 100) / 100, jogo, ate, max_usos: max, usos: Number(ant.usos) || 0, ativo: b.ativo !== false, criado: ant.criado || L.agora() };
         return { salvar: true, resultado: true };
       }, "cupom salvo: " + cod);
+      await D.avisarAdmin("Cupom salvo", "Codigo `" + cod + "` (" + (tipo === "fixo" ? "R$ " + valor : valor + "%") + ")");
       return res.status(200).json({ ok: true });
     }
 
@@ -150,6 +153,16 @@ module.exports = async (req, res) => {
       const cod = L.norm(b.codigo);
       await L.mutar((data) => { const ex = !!data.cupons[cod]; delete data.cupons[cod]; return { salvar: ex, resultado: ex }; }, "cupom apagado: " + cod);
       return res.status(200).json({ ok: true });
+    }
+
+    if (acao === "discord_registrar") {
+      const app = process.env.DISCORD_APP_ID, tk = process.env.DISCORD_BOT_TOKEN, gid = process.env.DISCORD_GUILD_ID;
+      if (!app || !tk) throw new L.Falha(400, "Configure DISCORD_APP_ID e DISCORD_BOT_TOKEN na Vercel e publique de novo.", "config");
+      const url = "https://discord.com/api/v10/applications/" + encodeURIComponent(app) + (gid ? "/guilds/" + encodeURIComponent(gid) : "") + "/commands";
+      const r = await fetch(url, { method: "PUT", headers: { Authorization: "Bot " + tk, "Content-Type": "application/json" }, body: JSON.stringify(D.COMANDOS) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new L.Falha(502, "Discord recusou: " + String((j && j.message) || r.status), "discord");
+      return res.status(200).json({ ok: true, aviso: D.COMANDOS.length + " comandos registrados" + (gid ? " no servidor." : " (globais: podem levar ate 1 hora para aparecer).") });
     }
 
     throw new L.Falha(400, "Acao desconhecida.", "pedido");
