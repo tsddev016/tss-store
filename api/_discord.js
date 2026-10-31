@@ -84,6 +84,42 @@ const LISTA_COMANDOS = [
     { type: 8, name: "cargo1", description: "Cargo que pode ver os tickets", required: true },
     { type: 8, name: "cargo2", description: "Outro cargo que pode ver os tickets" },
     { type: 8, name: "cargo3", description: "Outro cargo que pode ver os tickets" } ] },
+  { name: "anunciar", description: "Enviar um anuncio bonito em um canal", type: 1, options: [
+    { type: 7, name: "canal", description: "Canal do anuncio", required: true, channel_types: [0, 5] },
+    { type: 3, name: "titulo", description: "Titulo", required: true, max_length: 200 },
+    { type: 3, name: "texto", description: "Texto (use \\n para pular linha)", required: true, max_length: 3500 },
+    { type: 3, name: "marcar", description: "Avisar todo mundo?", choices: [{ name: "@everyone", value: "everyone" }, { name: "@here", value: "here" }] } ] },
+  { name: "limpar", description: "Apagar mensagens recentes deste canal", type: 1, options: [
+    { type: 4, name: "quantidade", description: "Quantas mensagens (1 a 100)", required: true, min_value: 1, max_value: 100 } ] },
+  { name: "silenciar", description: "Silenciar uma pessoa por um tempo", type: 1, options: [
+    { type: 6, name: "usuario", description: "Quem", required: true },
+    { type: 4, name: "minutos", description: "Minutos (1 a 40320)", required: true, min_value: 1, max_value: 40320 },
+    { type: 3, name: "motivo", description: "Motivo" } ] },
+  { name: "tirar-silencio", description: "Tirar o silencio de uma pessoa", type: 1, options: [
+    { type: 6, name: "usuario", description: "Quem", required: true } ] },
+  { name: "expulsar", description: "Expulsar uma pessoa do servidor", type: 1, options: [
+    { type: 6, name: "usuario", description: "Quem", required: true },
+    { type: 3, name: "motivo", description: "Motivo" } ] },
+  { name: "banir", description: "Banir uma pessoa do servidor", type: 1, options: [
+    { type: 6, name: "usuario", description: "Quem", required: true },
+    { type: 3, name: "motivo", description: "Motivo" },
+    { type: 4, name: "apagar_dias", description: "Apagar mensagens dos ultimos X dias (0 a 7)", min_value: 0, max_value: 7 } ] },
+  { name: "desbanir", description: "Remover o banimento de uma pessoa", type: 1, options: [
+    { type: 3, name: "id", description: "ID numerico da pessoa", required: true } ] },
+  { name: "lentidao", description: "Modo lento neste canal (0 desliga)", type: 1, options: [
+    { type: 4, name: "segundos", description: "Segundos entre mensagens (0 a 21600)", required: true, min_value: 0, max_value: 21600 } ] },
+  { name: "trancar", description: "Trancar este canal (so a equipe escreve)", type: 1 },
+  { name: "destrancar", description: "Liberar este canal de novo", type: 1 },
+  { name: "aviso", description: "Dar o proximo Aviso (1, 2 ou 3) a uma pessoa", type: 1, options: [
+    { type: 6, name: "usuario", description: "Quem", required: true },
+    { type: 3, name: "motivo", description: "Motivo do aviso", required: true } ] },
+  { name: "remover-aviso", description: "Tirar um nivel de aviso de uma pessoa", type: 1, options: [
+    { type: 6, name: "usuario", description: "Quem", required: true } ] },
+  { name: "protecao", description: "Ligar, desligar ou ver a protecao contra links e spam", type: 1, options: [
+    { type: 3, name: "acao", description: "O que fazer", required: true, choices: [{ name: "Ativar", value: "ativar" }, { name: "Ver status", value: "status" }, { name: "Desativar", value: "desativar" }] },
+    { type: 7, name: "canal_alertas", description: "Canal da equipe que recebe os alertas", channel_types: [0, 5] },
+    { type: 8, name: "cargo_isento1", description: "Cargo que pode mandar links (vazio = equipe)" },
+    { type: 8, name: "cargo_isento2", description: "Outro cargo que pode mandar links" } ] },
 ];
 
 // Visiveis so para quem tem a permissao "Moderar membros" (moderadores) e administradores; fora de DMs.
