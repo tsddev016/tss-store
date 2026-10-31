@@ -125,6 +125,7 @@ footer.rod{text-align:left;padding:2.5rem clamp(1rem,4vw,3rem) 2rem}
   <a class="brand" href="/" aria-label="TSS The Swift Store - início"><svg viewBox="-70 -70 140 140" aria-hidden="true"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg><span>TSS<small>THE SWIFT STORE</small></span></a>
   <nav aria-label="Principal"><a href="#jogos">Jogos</a><a href="#hub">TSS Hub</a><a href="#faq">Dúvidas</a><a href="/suporte">Suporte</a><a href="/resgatar">Resgatar chave</a><a href="/conta" id="navconta">Entrar</a><a class="pill" href="https://discord.gg/h5pD7XCMAf" target="_blank" rel="noopener">Discord</a></nav>
 </header>
+<div id="destaque" hidden></div>
 
 <section class="hero">
   <svg class="star" viewBox="-70 -70 140 140" aria-hidden="true"><polygon points="0,-60 13.47,-18.54 57.06,-18.54 21.8,7.08 35.27,48.54 0,22.92 -35.27,48.54 -21.8,7.08 -57.06,-18.54 -13.47,-18.54"/></svg>
@@ -135,7 +136,6 @@ footer.rod{text-align:left;padding:2.5rem clamp(1rem,4vw,3rem) 2rem}
 </section>
 
 <main>
-  <div id="destaque" hidden></div>
   <h2 id="jogos">JOGOS</h2>
   <div class="filtros" id="filtros" hidden><input id="fq" type="search" placeholder="Buscar jogo…" aria-label="Buscar jogo"><div id="ftags"></div></div>
   <div class="grid" id="grid" aria-live="polite"><div class="sk"></div><div class="sk"></div></div>
@@ -207,9 +207,10 @@ var lojaCfg=null;
 function destacar(){
   var box=document.getElementById("destaque"),id=lojaCfg&&lojaCfg.destaque&&lojaCfg.destaque.jogo,g=null;
   for(var i=0;i<todos.length;i++){if(todos[i].id===id)g=todos[i]}
+  if(!g&&todos.length)g=todos[0];
   if(!g){box.hidden=true;box.innerHTML="";return}
   box.hidden=false;
-  box.innerHTML='<a class="dst" href="/jogo/'+encodeURIComponent(g.id)+'"><img src="'+esc(safe(g.banner_url||g.capsule_url))+'" alt="'+esc(g.name)+'"><div class="t"><small>EM DESTAQUE</small><h3>'+esc(g.name)+'</h3><p>'+esc(g.description)+'</p><span class="btn" style="align-self:flex-start">Ver o jogo</span></div></a>';
+  box.innerHTML='<section class="bb"><img class="bbimg" src="'+esc(safe(g.banner_url||g.capsule_url))+'" alt="'+esc(g.name)+'"><div class="bbfade"></div><div class="bbtxt"><span class="bbtag">EM DESTAQUE</span><div class="bbh">'+esc(g.name)+'</div><p>'+esc(g.description)+'</p><div class="bbact"><a class="btn" href="/jogo/'+encodeURIComponent(g.id)+'">Ver o jogo</a><span class="bbprice">'+esc(g.protegido?fmtPreco(g.preco):"Grátis")+'</span></div></div></section>';
 }
 fetch("/loja.json",{cache:"no-cache"}).then(function(r){return r.ok?r.json():null}).then(function(l){lojaCfg=l;destacar()}).catch(function(){});
 var todos=[],fq="",ftag="";
