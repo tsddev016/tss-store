@@ -67,6 +67,23 @@ const LISTA_COMANDOS = [
     { type: 3, name: "jogo", description: "ID do jogo (vazio = todos)" },
     { type: 3, name: "ate", description: "Validade AAAA-MM-DD" },
     { type: 4, name: "max_usos", description: "Limite de usos (0 = sem limite)" } ] },
+  { name: "revogar", description: "Revogar uma chave (cancela o acesso)", type: 1, options: [
+    { type: 3, name: "chave", description: "Chave completa ou ID curto do painel", required: true } ] },
+  { name: "reativar", description: "Reativar uma chave revogada", type: 1, options: [
+    { type: 3, name: "chave", description: "Chave completa ou ID curto do painel", required: true } ] },
+  { name: "liberar", description: "Liberar os computadores ligados a uma chave", type: 1, options: [
+    { type: 3, name: "chave", description: "Chave completa ou ID curto do painel", required: true } ] },
+  { name: "pedido", description: "Ver os dados de um pedido", type: 1, options: [
+    { type: 3, name: "id", description: "Numero do pedido", required: true } ] },
+  { name: "cupons", description: "Listar os cupons de desconto", type: 1 },
+  { name: "cupom-apagar", description: "Apagar um cupom de desconto", type: 1, options: [
+    { type: 3, name: "codigo", description: "Codigo do cupom", required: true } ] },
+  { name: "gerar-ticket", description: "Enviar o painel de tickets de suporte em um canal", type: 1, options: [
+    { type: 7, name: "canal", description: "Canal onde a mensagem do painel vai aparecer", required: true, channel_types: [0, 5] },
+    { type: 7, name: "categoria", description: "Categoria onde os tickets serao criados", required: true, channel_types: [4] },
+    { type: 8, name: "cargo1", description: "Cargo que pode ver os tickets", required: true },
+    { type: 8, name: "cargo2", description: "Outro cargo que pode ver os tickets" },
+    { type: 8, name: "cargo3", description: "Outro cargo que pode ver os tickets" } ] },
 ];
 
 // Visiveis so para quem tem a permissao "Moderar membros" (moderadores) e administradores; fora de DMs.

@@ -3,6 +3,7 @@ const R = require("./_release");
 const crypto = require("crypto");
 const L = require("./_cofre");
 const D = require("./_discord");
+const T = require("./_tickets");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------- Bot do Discord (slash commands) em /api/discord ----------
@@ -34,7 +35,24 @@ function resumoVendas(data) {
     .map(([p, r]) => "- " + (r.jogo || "?") + " · " + reais(r.preco) + " · " + String(r.criado || "").slice(0, 10)).join("\n") || "- nenhuma ainda";
   return "**Vendas:** " + pagos.length + " paga(s), total " + reais(total) + "\n**Chaves em uso:** " + emUso + "\n**Pedidos de reembolso abertos:** " + pedidosReemb + "\n**Ultimas compras:**\n" + ultimas;
 }
-async function comando(d) {
+function achaHash(data, entrada) {
+  const s = String(entrada || "").trim(), n = L.norm(s);
+  if (n.length === 20) { const h = L.sha(n); if (data.keys[h]) return h; }
+  const id = s.toLowerCase();
+  if (/^[0-9a-f]{8,64}$/.test(id)) { const hs = Object.keys(data.keys).filter((h) => h.startsWith(id)); if (hs.length === 1) return hs[0]; }
+  throw new L.Falha(404, "Chave nao encontrada. Use a chave completa ou o ID curto do painel.", "sem_chave");
+}
+async function acaoChave(acao, entrada) {
+  await L.mutar((data) => {
+    const k = data.keys[achaHash(data, entrada)];
+    if (acao === "revogar") k.revogada = true;
+    if (acao === "reativar") delete k.revogada;
+    if (acao === "liberar") k.maquinas = [];
+    return { salvar: true, resultado: true };
+  }, "discord: " + acao + " chave");
+  return acao === "revogar" ? "Chave revogada." : acao === "reativar" ? "Chave reativada." : "Computadores liberados: a chave pode ser usada de novo em outros PCs.";
+}
+async function comando(d, it) {
   const o = {};
   (d.options || []).forEach((x) => { o[x.name] = x.value; });
   const JOGO_OK = /^[a-z0-9_-]{1,40}$/;
@@ -64,6 +82,24 @@ async function comando(d) {
     }, "cupom salvo (discord): " + cod);
     return "Cupom **" + cod + "** salvo: " + (tipo === "fixo" ? reais(valor) : valor + "%") + " de desconto" + (jogo ? " em " + jogo : " em todos os jogos") + (ate ? ", ate " + ate : "") + (max ? ", limite " + max + " usos" : "") + ".";
   }
+  if (["revogar", "reativar", "liberar"].includes(d.name)) return acaoChave(d.name, o.chave);
+  if (d.name === "pedido") {
+    const { data } = await L.lerChaves(); const pid = L.idPedido(o.id), r = data.pedidos[pid];
+    if (!r) return "Pedido nao encontrado.";
+    const k = data.keys[r.h] || {}, rb = (data.reembolsos || {})[pid] || {};
+    return "**Pedido** `" + pid + "`\n**Jogo:** " + (r.jogo || "?") + "\n**Valor:** " + (Number(r.preco) > 0 ? reais(r.preco) : "nao informado") + "\n**Criado:** " + String(r.criado || "").slice(0, 10) + " (" + (r.origem || "?") + ")\n**Chave:** " + (k.revogada ? "revogada" : "ativa") + ", " + ((k.maquinas || []).length) + "/" + (k.max || L.MAX_PADRAO) + " computador(es)\n**Reembolso:** " + (rb.estado || "nenhum");
+  }
+  if (d.name === "cupons") {
+    const { data } = await L.lerChaves(), lista = Object.entries(data.cupons || {});
+    if (!lista.length) return "Nenhum cupom criado.";
+    return lista.slice(0, 20).map(([c, x]) => "`" + c + "` · " + (x.tipo === "fixo" ? reais(x.valor) : x.valor + "%") + (x.jogo ? " · " + x.jogo : "") + (x.ate ? " · ate " + x.ate : "") + " · usos " + (x.usos || 0) + (x.max_usos ? "/" + x.max_usos : "") + (x.ativo === false ? " · desativado" : "")).join("\n");
+  }
+  if (d.name === "cupom-apagar") {
+    const cod = L.norm(o.codigo);
+    const ok = await L.mutar((data) => { const ex = !!data.cupons[cod]; delete data.cupons[cod]; return { salvar: ex, resultado: ex }; }, "cupom apagado (discord): " + cod);
+    return ok ? "Cupom **" + cod + "** apagado." : "Esse cupom nao existe.";
+  }
+  if (d.name === "gerar-ticket") return T.gerarPainel(it || {}, o);
   return "Comando desconhecido.";
 }
 const resp = (res, txt) => res.status(200).json({ type: 4, data: { content: String(txt).slice(0, 1900), flags: 64, allowed_mentions: { parse: [] } } });
@@ -74,11 +110,15 @@ async function discordBot(req, res) {
   let it;
   try { it = JSON.parse(raw.toString("utf8")); } catch (e) { return res.status(400).end(); }
   if (it.type === 1) return res.status(200).json({ type: 1 });
+  if (it.type === 3) {
+    try { return res.status(200).json(await T.componente(it)); }
+    catch (e) { return resp(res, "Erro: " + String(e.erro || e.message || e).slice(0, 300)); }
+  }
   if (it.type !== 2) return res.status(400).end();
   const uid = String((it.member && it.member.user && it.member.user.id) || (it.user && it.user.id) || "");
   const permitidos = String(process.env.DISCORD_ADMIN_IDS || "").split(",").map((s) => s.trim()).filter(Boolean);
   if (!uid || !permitidos.includes(uid)) return resp(res, "Voce nao tem permissao para usar este bot.");
-  try { return resp(res, await comando(it.data || {})); }
+  try { return resp(res, await comando(it.data || {}, it)); }
   catch (e) { return resp(res, "Erro: " + String(e.erro || e.message || e).slice(0, 300)); }
 }
 
