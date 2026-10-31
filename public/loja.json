@@ -2,13 +2,13 @@
   "cores": {
     "gold": "#b400f5",
     "gold2": "#0c0c08",
-    "bg": "#0d0c07",
-    "panel": "#171509",
+    "bg": "#8000ff",
+    "panel": "#fd75ff",
     "text": "#efe9c8"
   },
   "anuncio": {
     "ativo": false,
-    "texto": "",
+    "texto": "teste",
     "link": ""
   },
   "destaque": {
