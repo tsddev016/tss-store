@@ -55,7 +55,7 @@ function avisarAdmin(titulo, texto) {
 }
 
 // Comandos do bot (registrados pelo painel: Integracao > Registrar comandos).
-const COMANDOS = [
+const LISTA_COMANDOS = [
   { name: "vendas", description: "Resumo de vendas, chaves em uso e reembolsos", type: 1 },
   { name: "chave", description: "Gerar chaves avulsas de um jogo", type: 1, options: [
     { type: 3, name: "jogo", description: "ID do jogo (ex.: backrooms)", required: true },
@@ -68,5 +68,9 @@ const COMANDOS = [
     { type: 3, name: "ate", description: "Validade AAAA-MM-DD" },
     { type: 4, name: "max_usos", description: "Limite de usos (0 = sem limite)" } ] },
 ];
+
+// Visiveis so para quem tem a permissao "Moderar membros" (moderadores) e administradores; fora de DMs.
+// Quem realmente executa continua limitado a DISCORD_ADMIN_IDS (checado no servidor).
+const COMANDOS = LISTA_COMANDOS.map((c) => ({ ...c, default_member_permissions: "1099511627776", dm_permission: false }));
 
 module.exports = { avisarCompra, avisarEstorno, avisarAdmin, COMANDOS };
