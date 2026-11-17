@@ -19,8 +19,9 @@
 <h2>2. Quais dados coletamos e por quê</h2>
 <div class="wrap"><table>
 <tr><th>Dados</th><th>Quando</th><th>Finalidade</th><th>Base legal (LGPD, art. 7º)</th></tr>
-<tr><td>Código do seu login (derivado do ID no Google, Discord ou GitHub; sem nome, e-mail ou foto gravados)</td><td>Ao entrar</td><td>Criar e manter a conta e ligar suas compras a ela</td><td>Execução de contrato (V)</td></tr>
+<tr><td>Código do seu login (derivado do ID no Discord; sem nome, e-mail ou foto gravados)</td><td>Ao entrar</td><td>Criar e manter a conta e ligar suas compras a ela</td><td>Execução de contrato (V)</td></tr>
 <tr><td>E-mail, quando informado na compra ou no resgate (guardado só como código de verificação; nome e CPF a TSS não pede nem guarda — se o Mercado Pago pedir, é na tela dele)</td><td>Ao comprar ou resgatar</td><td>Permitir recuperar a chave e atender suporte</td><td>Execução de contrato (V); legítimo interesse na prevenção à fraude (IX)</td></tr>
+<tr><td>Usuário e senha do Hub (a senha só como hash, nunca em texto)</td><td>Ao criar o login do Hub</td><td>Entrar no TSS Hub e liberar seus jogos</td><td>Execução de contrato (V)</td></tr>
 <tr><td>Pedido, jogo, valor, data, status, chave</td><td>Na compra</td><td>Entrega, reembolso, defesa em disputas</td><td>Contrato (V); exercício regular de direitos (VI); obrigação legal (II)</td></tr>
 <tr><td>Dados enviados pela Game Market (pedido, e-mail, CPF, nome; guardamos só o número do pedido e o e-mail como código de verificação; CPF e nome são descartados)</td><td>Compra na Game Market</td><td>Liberar sua chave</td><td>Contrato (V)</td></tr>
 <tr><td>Código técnico do computador</td><td>Ao ativar a chave no jogo/Hub</td><td>Limitar o uso ao número de computadores da chave</td><td>Contrato (V); legítimo interesse antipirataria (IX)</td></tr>
@@ -32,7 +33,7 @@
 <ul>
 <li><b>Mercado Pago</b>: processa o Pix (recebe nome, CPF e e-mail do pagador).</li>
 <li><b>Game Market</b>: quando você compra por lá, ela nos envia os dados do pedido.</li>
-<li><b>Google, Discord e GitHub</b>: apenas para o login que você escolher.</li>
+<li><b>Discord</b>: login e entrada automática no servidor da TSS (só o ID e o nome de usuário; sem e-mail).</li>
 <li><b>GitHub</b> (repositório privado) e <b>Vercel</b> (hospedagem): guardam e processam os dados como operadores.</li>
 <li><b>Autoridades</b>, quando houver obrigação legal ou ordem judicial.</li>
 </ul>

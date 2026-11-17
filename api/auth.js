@@ -12,12 +12,13 @@ module.exports = async (req, res) => {
   const q = req.query || {};
   const acao = String(q.acao || "");
   const prov = String(q.provedor || "").toLowerCase();
+  const PERMITIDOS = ["discord"]; // login so pelo Discord
   const irPara = (url) => { res.statusCode = 302; res.setHeader("Location", url); res.end(); };
   const erroNaConta = (msg) => irPara("/conta?erro=" + encodeURIComponent(msg));
 
   try {
     if (acao === "provedores") {
-      return res.status(200).json({ ok: true, provedores: Object.keys(A.PROVEDORES).filter(A.configurado).map((p) => ({ id: p, nome: A.PROVEDORES[p].nome })) });
+      return res.status(200).json({ ok: true, provedores: Object.keys(A.PROVEDORES).filter((p) => PERMITIDOS.includes(p) && A.configurado(p)).map((p) => ({ id: p, nome: A.PROVEDORES[p].nome })) });
     }
     if (acao === "eu") {
       const s = A.sessao(req);
@@ -25,8 +26,10 @@ module.exports = async (req, res) => {
     }
     if (acao === "sair") { A.limparCookie(res, A.SESSAO); return irPara("/"); }
 
+    if (acao === "hub") return await require("./_hub")(req, res);
+
     if (acao === "entrar") {
-      if (!A.configurado(prov)) return erroNaConta("Login com esse provedor ainda nao esta configurado.");
+      if (!PERMITIDOS.includes(prov) || !A.configurado(prov)) return erroNaConta("Login com esse provedor ainda nao esta configurado.");
       const estado = crypto.randomBytes(16).toString("hex");
       A.setCookie(res, A.OAUTH, A.assinar({ tipo: "oauth", estado, prov, volta: A.volta(q.volta), exp: Date.now() + 600000 }), 600);
       const P = A.PROVEDORES[prov];
@@ -36,7 +39,7 @@ module.exports = async (req, res) => {
     }
 
     if (acao === "retorno") {
-      if (!A.configurado(prov)) return erroNaConta("Login com esse provedor ainda nao esta configurado.");
+      if (!PERMITIDOS.includes(prov) || !A.configurado(prov)) return erroNaConta("Login com esse provedor ainda nao esta configurado.");
       const o = A.verificar(A.cookies(req)[A.OAUTH]);
       A.limparCookie(res, A.OAUTH);
       if (q.error) return erroNaConta("Login cancelado.");
@@ -44,6 +47,7 @@ module.exports = async (req, res) => {
 
       const token = await A.trocarCodigo(prov, String(q.code));
       const p = await A.perfil(prov, token);
+      await A.garantirMembroDiscord(token, p.id);
       const uid = L.idConta(prov, p.id);
       await L.mutar((data) => {
         const c = data.contas[uid] || (data.contas[uid] = { provedor: prov, criada: L.agora(), aceites: [] });

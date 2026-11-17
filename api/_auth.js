@@ -21,7 +21,7 @@ const PROVEDORES = {
     nome: "Discord",
     id: () => process.env.DISCORD_CLIENT_ID, segredo: () => process.env.DISCORD_CLIENT_SECRET,
     auth: "https://discord.com/oauth2/authorize", token: "https://discord.com/api/oauth2/token",
-    escopo: "identify email",
+    escopo: "identify guilds.join",
   },
   github: {
     nome: "GitHub",
@@ -121,5 +121,21 @@ async function perfil(prov, token) {
   return { id: String(j.id), nome: j.name || j.login || "", email, avatar: j.avatar_url || "" };
 }
 
-module.exports = { SESSAO, OAUTH, PROVEDORES, configurado, redirectUri, assinar, verificar, cookies, setCookie, limparCookie,
+// Garante que a pessoa esta no Discord da TSS (entra sozinha, com o cargo Membro, se ainda nao estiver).
+async function garantirMembroDiscord(accessToken, userId) {
+  const bot = process.env.DISCORD_BOT_TOKEN;
+  const g = process.env.DISCORD_GUILD_ID || "1485508117159481367";
+  const cargo = process.env.DISCORD_ROLE_MEMBRO || "1565315753287098420";
+  if (!bot) throw new L.Falha(500, "O bot do Discord ainda nao esta configurado no servidor.", "config");
+  const r = await fetch("https://discord.com/api/v10/guilds/" + g + "/members/" + encodeURIComponent(userId), {
+    method: "PUT",
+    headers: { Authorization: "Bot " + bot, "Content-Type": "application/json", "User-Agent": "DiscordBot (tss-store, 1.0)" },
+    body: JSON.stringify({ access_token: accessToken, roles: [cargo] }),
+  });
+  if (r.status === 201 || r.status === 204) return true;
+  if (r.status === 403) throw new L.Falha(403, "Nao foi possivel te colocar no Discord da TSS. Se voce foi banido, fale com a equipe.", "discord_membro");
+  throw new L.Falha(502, "Nao consegui confirmar que voce esta no Discord da TSS. Tente de novo.", "discord_membro");
+}
+
+module.exports = { garantirMembroDiscord, SESSAO, OAUTH, PROVEDORES, configurado, redirectUri, assinar, verificar, cookies, setCookie, limparCookie,
   sessao, exigirSessao, iniciarSessao, volta, trocarCodigo, perfil };
