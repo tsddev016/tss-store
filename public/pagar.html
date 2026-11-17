@@ -42,8 +42,7 @@ button.ghost{background:transparent;color:var(--mute);border:1px solid var(--lin
     <p class="mut" id="quem"></p>
     <div class="cup"><input id="cup" placeholder="Cupom de desconto" maxlength="30" autocomplete="off" aria-label="Cupom de desconto"><button class="ghost" id="aplicar" type="button">Aplicar</button></div>
     <p class="mut" id="cupmsg"></p>
-    <label class="chk"><input type="checkbox" id="aceite"><span>Li e aceito os <a href="/termos" target="_blank" rel="noopener">Termos de Uso</a>, a <a href="/privacidade" target="_blank" rel="noopener">Política de Privacidade</a> e a <a href="/reembolso" target="_blank" rel="noopener">Política de Reembolso</a> (7 dias para desistir). Tenho 18 anos ou mais, ou autorização do meu responsável.</span></label>
-    <button id="gerar" disabled>Gerar Pix</button>
+    <button id="gerar">Gerar Pix</button>
   </div>
 
   <div id="pix" hidden>
@@ -114,7 +113,6 @@ el("aplicar").onclick=function(){
     else{cupomAplicado="";setPreco(preco);el("cupmsg").className="mut err";el("cupmsg").textContent=(d&&d.erro)||"Cupom invalido."}
   }).catch(function(){el("aplicar").disabled=false;el("cupmsg").textContent="Não consegui verificar o cupom."});
 };
-el("aceite").onchange=function(){el("gerar").disabled=!el("aceite").checked};
 
 function say(t,cls){var s=document.getElementById("st");s.className="status "+(cls||"");s.textContent=t||""}
 function fmt(ms){var s=Math.max(0,Math.ceil(ms/1000));var m=Math.floor(s/60);s=s%60;return (m<10?"0":"")+m+":"+(s<10?"0":"")+s}
@@ -202,7 +200,7 @@ document.getElementById("gerar").onclick=function(){
     method:"POST",
     headers:{"Content-Type":"application/json"},
     credentials:"same-origin",
-    body:JSON.stringify({jogo:jogo,nome:compradorNome,email:compradorEmail,aceite_termos:window.TSS_TERMOS_VERSAO||"2026-10-29",maior_18:el("aceite").checked,cupom:cupomAplicado})
+    body:JSON.stringify({jogo:jogo,email:compradorEmail,cupom:cupomAplicado})
   }).then(function(r){return r.json()}).then(function(d){
     if(!d.ok){if(d.codigo==="login"){location.reload();return}throw new Error(d.erro||"Falha ao criar Pix")}
     paymentId=d.payment_id;

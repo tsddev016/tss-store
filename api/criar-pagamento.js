@@ -41,11 +41,6 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, cupom: x.codigo, preco_original: preco, preco_final: x.preco_final });
     }
 
-    // Aceite dos termos (prova de consentimento) + maioridade
-    if (String(b.aceite_termos) !== L.TERMOS_VERSAO || b.maior_18 !== true) {
-      throw new L.Falha(400, "Aceite os Termos de Uso, a Politica de Privacidade e a Politica de Reembolso para continuar.", "aceite");
-    }
-
     // Cupom (opcional): o desconto e recalculado aqui, no servidor.
     let precoPag = preco, cupomX = null;
     if (String(b.cupom || "").trim()) {
@@ -65,13 +60,6 @@ module.exports = async (req, res) => {
     const nome = (String(b.nome || "").trim().replace(/\s+/g, " ") || salvo.nome || "").slice(0, 80);
     const cpf = L.normalizarCpf(b.cpf) || salvo.cpf || "";
     const email = String(b.email || salvo.email || "").trim().toLowerCase();
-
-    if (sess) await L.mutar((data) => {
-      const c = data.contas[sess.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
-      c.aceites = c.aceites || [];
-      if (!c.aceites.some((a) => a.versao === L.TERMOS_VERSAO)) c.aceites.push({ versao: L.TERMOS_VERSAO, em: L.agora(), onde: "checkout", maior_18: true });
-      return { salvar: true, resultado: true };
-    }, "conta: aceite dos termos");
 
     const base = process.env.SITE_URL || "https://tss-store.vercel.app";
     const pedidoId = "pix-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
@@ -95,7 +83,7 @@ module.exports = async (req, res) => {
       // Qualidade da integracao MP
       statement_descriptor: "TSS STORE",
       binary_mode: true,
-      metadata: { jogo, email, origem: "tss-store-pix", site: base, conta: sess ? sess.uid : "", aceite: L.TERMOS_VERSAO, cupom: cupomX ? cupomX.codigo : "", preco_final: precoPag },
+      metadata: { jogo, email, origem: "tss-store-pix", site: base, conta: sess ? sess.uid : "", cupom: cupomX ? cupomX.codigo : "", preco_final: precoPag },
       additional_info: {
         items: [{
           id: jogo,
