@@ -3,6 +3,8 @@
 const R = require("./_release");
 
 module.exports = async (req, res) => {
+  // /baixar/hub -> instalador do TSS Hub (logica em _baixar_hub.js; nao vira funcao nova no Vercel Hobby)
+  if (req.query && req.query.hub) return require("./_baixar_hub")(req, res);
   res.setHeader("Cache-Control", "no-store");
   try {
     if (req.method !== "GET" && req.method !== "POST") {

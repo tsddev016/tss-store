@@ -244,7 +244,7 @@ var ultimo="",seoFeito=false;
 var hubProprio=false;
 function aplicarHub(url,ver){["hubbtn","hubbtn2"].forEach(function(id){var b=document.getElementById(id);if(!b)return;b.href=url;b.classList.remove("off");b.textContent="Baixar o TSS Hub"+(ver?" v"+ver:"")})}
 /* Instalador do Hub hospedado no proprio site (/baixar/hub). Se ainda nao foi publicado, usa o link do catalogo. */
-fetch("/api/baixar-hub?info=1",{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){hubProprio=true;aplicarHub("/baixar/hub",j.versao)}}).catch(function(){});
+fetch("/api/baixar-gratis?hub=1&info=1",{cache:"no-store"}).then(function(r){return r.json()}).then(function(j){if(j&&j.ok){hubProprio=true;aplicarHub("/baixar/hub",j.versao)}}).catch(function(){});
 function pintar(d){
   var hub=d.hub||{};
   if(!hubProprio&&hub.download_url&&safe(hub.download_url)){aplicarHub(safe(hub.download_url),hub.version)}

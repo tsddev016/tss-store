@@ -2,7 +2,7 @@
 // O instalador fica no cofre: uma release com tag que comeca com "hub" (ex.: hub-v2.2)
 // com o .exe (ou .zip) anexado, ou o arquivo dentro da pasta hub/ do cofre.
 //   GET /baixar/hub            -> baixa o instalador mais novo (302 para link temporario)
-//   GET /api/baixar-hub?info=1 -> {ok, nome, versao} (o site usa para ligar o botao)
+//   GET /api/baixar-gratis?hub=1&info=1 -> {ok, nome, versao} (o site usa para ligar o botao)
 const R = require("./_release");
 
 const numeros = (s) => {

@@ -102,7 +102,7 @@
   "rewrites": [
     {
       "source": "/baixar/hub",
-      "destination": "/api/baixar-hub"
+      "destination": "/api/baixar-gratis?hub=1"
     },
     {
       "source": "/api/discord",
