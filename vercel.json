@@ -101,6 +101,10 @@
   ],
   "rewrites": [
     {
+      "source": "/baixar/hub",
+      "destination": "/api/baixar-hub"
+    },
+    {
       "source": "/api/discord",
       "destination": "/api/jogo?discord=1"
     },

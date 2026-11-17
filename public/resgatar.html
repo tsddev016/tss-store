@@ -37,7 +37,7 @@ a{color:var(--ac)}
 </div>
 <script>
 const $=i=>document.getElementById(i);
-fetch("/catalog.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{const u=c.hub&&c.hub.download_url;if(u)$("hub").href=u;else{$("hub").removeAttribute("href");$("hub").textContent="(link do Hub sera informado pelo suporte)"}}).catch(()=>{});
+fetch("/api/baixar-hub?info=1",{cache:"no-store"}).then(r=>r.json()).then(j=>{if(j&&j.ok){$("hub").href="/baixar/hub";return}return fetch("/catalog.json",{cache:"no-store"}).then(r=>r.json()).then(c=>{const u=c.hub&&c.hub.download_url;if(u)$("hub").href=u;else{$("hub").removeAttribute("href");$("hub").textContent="(link do Hub sera informado pelo suporte)"}})}).catch(()=>{});
 $("b").onclick=async()=>{
   const m=$("m");m.className="msg";m.textContent="Conferindo…";$("b").disabled=true;
   try{
