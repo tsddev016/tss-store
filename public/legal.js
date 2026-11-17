@@ -8,7 +8,11 @@
     function liberar(){var s=document.getElementById("tss-gate");if(s)s.remove()}
     fetch("/api/auth?acao=eu",{credentials:"same-origin",cache:"no-store"}).then(function(r){return r.json()}).then(function(d){
       if(d&&d.logado){liberar();return}
-      location.replace("/auth/entrar/discord?volta="+encodeURIComponent(location.pathname+location.search));
+      // So obriga o login quando o Discord ja esta configurado no servidor (senao a loja ficaria travada).
+      return fetch("/api/auth?acao=provedores",{cache:"no-store"}).then(function(r){return r.json()}).then(function(p){
+        if(p&&p.provedores&&p.provedores.length)location.replace("/auth/entrar/discord?volta="+encodeURIComponent(location.pathname+location.search));
+        else liberar();
+      });
     }).catch(function(){liberar()});
   }
   function empresa(){
