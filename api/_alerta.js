@@ -115,8 +115,8 @@ async function avisarLogin({ req, discordId, email, titulo, linkRedefinir, fetch
     ];
     const teto = new Promise((ok) => setTimeout(() => ok([false, false]), 5000));
     const [dm, mail] = await Promise.race([Promise.all(tarefas), teto]);
-    return { dm: !!dm, email: !!mail };
-  } catch (e) { return { dm: false, email: false }; }
+    return { dm: !!dm, email: !!mail, info };
+  } catch (e) { return { dm: false, email: false, info: null }; }
 }
 
 // Link de redefinicao: assinado, vale 30 min e so uma vez (a assinatura amarra na senha atual: ao trocar a senha, o link morre).
