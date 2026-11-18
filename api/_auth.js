@@ -55,6 +55,8 @@ function verificar(tok) {
   } catch (e) { return null; }
 }
 
+const hmacSessao = (txt) => crypto.createHmac("sha256", segredoSessao()).update(String(txt)).digest("hex");
+
 function cookies(req) {
   const out = {};
   String((req.headers && req.headers.cookie) || "").split(";").forEach((par) => {
@@ -137,5 +139,5 @@ async function garantirMembroDiscord(accessToken, userId) {
   throw new L.Falha(502, "Nao consegui confirmar que voce esta no Discord da TSS. Tente de novo.", "discord_membro");
 }
 
-module.exports = { garantirMembroDiscord, SESSAO, OAUTH, PROVEDORES, configurado, redirectUri, assinar, verificar, cookies, setCookie, limparCookie,
+module.exports = { hmacSessao, garantirMembroDiscord, SESSAO, OAUTH, PROVEDORES, configurado, redirectUri, assinar, verificar, cookies, setCookie, limparCookie,
   sessao, exigirSessao, iniciarSessao, volta, trocarCodigo, perfil };

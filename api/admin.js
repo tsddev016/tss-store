@@ -1,6 +1,7 @@
-// Painel do administrador (API). Toda acao exige ADMIN_PASSWORD.
+// Painel do administrador (API). Toda acao exige login com o Discord de um admin + codigo de 12 caracteres enviado no privado.
 const L = require("./_cofre");
 const D = require("./_discord");
+const AD = require("./_adminauth");
 
 const JOGO_OK = /^[a-z0-9_-]{1,40}$/;
 
@@ -27,10 +28,15 @@ module.exports = async (req, res) => {
   try {
     if (req.method !== "POST") throw new L.Falha(405, "Metodo nao permitido.", "metodo");
     const b = L.corpo(req);
-    await L.exigirAdmin(b.senha);
     const acao = String(b.acao || "");
+    if (["status", "enviar_codigo", "verificar_codigo", "sair"].includes(acao)) return await AD.etapas(req, res, acao, b);
+    const sess = await AD.exigirAdmin(req);
 
     if (acao === "entrar") return res.status(200).json({ ok: true });
+
+    if (acao === "admins_listar") return res.status(200).json({ ok: true, admins: await AD.listar() });
+    if (acao === "admins_add") { await AD.adicionar(b); return res.status(200).json({ ok: true, admins: await AD.listar() }); }
+    if (acao === "admins_remover") { await AD.remover(sess, b); return res.status(200).json({ ok: true, admins: await AD.listar() }); }
 
     if (acao === "listar") {
       const { data } = await L.lerChaves();

@@ -17,7 +17,10 @@ code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border
 img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-top:8px;display:block}
 </style></head><body><div class="w">
 <h1>TSS · Painel do administrador</h1><p class="mut">Chaves, pedidos, jogos publicados e publicação de versões.</p>
-<div class="card" id="login"><label>Senha do administrador</label><input id="pw" type="password" autocomplete="current-password"><p><button id="go">Entrar</button></p><div class="msg" id="lm"></div></div>
+<div class="card" id="login"><h2>Entrar</h2>
+<div id="l1"><p class="mut">Entre com o seu Discord. Só contas de administrador passam.</p><p><button id="goDc">Entrar com o Discord</button></p></div>
+<div id="l2" hidden><p class="mut" id="l2t"></p><p><button id="goCod">Enviar código para o meu Discord</button></p><label>Código de verificação (12 letras e números)</label><input id="cod" maxlength="20" autocomplete="one-time-code" style="text-transform:uppercase"><p><button id="goVer">Confirmar</button> <button id="goTroca" class="gh">Trocar de conta</button></p></div>
+<div class="msg" id="lm"></div></div>
 <div id="app" hidden>
 <div class="tabs" id="tabs"></div>
 
@@ -99,6 +102,12 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <button id="cp-salvar" style="margin-top:12px">Salvar cupom</button><div class="msg" id="cp-m"></div></div>
 <div class="card"><h2>Cupons</h2><div class="sc"><table id="cp-t"></table></div></div></section>
 
+<section id="t-admins" hidden><div class="card"><h2>Administradores</h2>
+<p class="mut">Quem entra no painel: o dono do servidor Discord, os IDs da Vercel e os que você adicionar aqui. Todo login pede o Discord e um código de 12 caracteres que o bot manda no privado.</p>
+<div class="sc"><table id="ta"></table></div>
+<label>ID do Discord da pessoa (Modo desenvolvedor → botão direito → Copiar ID)</label><input id="aid" inputmode="numeric" maxlength="25">
+<label>Apelido (opcional)</label><input id="anome" maxlength="40">
+<p><button id="addadm">Adicionar admin</button> <button id="sairadm" class="gh">Sair do painel</button></p><div class="msg" id="adm"></div></div></section>
 <section id="t-loja" hidden>
 <div class="card"><h2>Cores da loja</h2><p class="mut">Precisa do token do GitHub (Contents: read/write no tss-store), o mesmo usado em Jogos. A loja atualiza em cerca de 1 minuto.</p>
 <div class="row"><div><label>Destaque (dourado)</label><input type="color" id="lc-gold"></div><div><label>Destaque escuro</label><input type="color" id="lc-gold2"></div><div><label>Fundo</label><input type="color" id="lc-bg"></div><div><label>Cartoes</label><input type="color" id="lc-panel"></div><div><label>Texto</label><input type="color" id="lc-text"></div></div></div>
@@ -116,10 +125,10 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 </div>
 <script>
 const $=i=>document.getElementById(i),OW="tsddev016",ST="tss-store",CO="tss-cofre";
-let SEN="",CAT=null,LOGC=[];
+let CAT=null,LOGC=[];
 function el(t,a,...k){const e=document.createElement(t);for(const[x,v]of Object.entries(a||{}))e[x]=v;for(const c of k)e.append(c);return e}
 function say(id,txt,cls){const m=$(id);m.className="msg "+(cls||"");m.textContent=txt}
-async function api(acao,extra){const r=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({senha:SEN,acao,...extra})});const d=await r.json();if(!d.ok)throw new Error(d.erro||"Erro");return d}
+async function api(acao,extra){const r=await fetch("/api/admin",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({acao,...extra})});const d=await r.json();if(!d.ok)throw new Error(d.erro||"Erro");return d}
 const dt=s=>s?new Date(s).toLocaleString("pt-BR"):"—";
 function tabela(t,cols,rows){t.replaceChildren(el("thead",{},el("tr",{},...cols.map(c=>el("th",{},c)))),el("tbody",{},...rows.map(r=>el("tr",{},...r.map(c=>el("td",{},c))))));if(!rows.length)t.append(el("tbody",{},el("tr",{},el("td",{colSpan:cols.length,className:"mut"},"Nada por aqui ainda."))))}
 function btn(txt,fn){const b=el("button",{className:"s"},txt);b.onclick=async()=>{b.disabled=true;try{await fn();await carregar()}catch(e){alert(e.message)}b.disabled=false};return b}
@@ -163,16 +172,30 @@ $("eprot").onchange=()=>{
   ?"Marcado = pago (Mercado Pago + chave de ativacao)."
   :"Desmarcado = gratis (download direto pelo Hub/site).";
 };
-const TABS=[["chaves","Chaves"],["pedidos","Pedidos"],["compras","Compras"],["gerar","Gerar chaves"],["jogos","Jogos"],["publicar","Publicar"],["integra","Integracao"],["cupons","Cupons"],["loja","Aparencia"]];
-function aba(n){if(n==="cupons")carregarCupons();if(n==="loja")carregarLoja();TABS.forEach(([i])=>{$("t-"+i).hidden=i!==n});[...$("tabs").children].forEach((b,j)=>b.className=TABS[j][0]===n?"on":"")}
-async function entrar(){SEN=$("pw").value;try{await api("entrar");sessionStorage.setItem("tss_adm",SEN);$("login").hidden=true;$("app").hidden=false;
+const TABS=[["chaves","Chaves"],["pedidos","Pedidos"],["compras","Compras"],["gerar","Gerar chaves"],["jogos","Jogos"],["publicar","Publicar"],["integra","Integracao"],["cupons","Cupons"],["loja","Aparencia"],["admins","Admins"]];
+function aba(n){if(n==="admins")carregarAdmins();if(n==="cupons")carregarCupons();if(n==="loja")carregarLoja();TABS.forEach(([i])=>{$("t-"+i).hidden=i!==n});[...$("tabs").children].forEach((b,j)=>b.className=TABS[j][0]===n?"on":"")}
+function abrirPainel(){$("login").hidden=true;$("app").hidden=false;
  $("tabs").replaceChildren(...TABS.map(([i,t])=>{const b=el("button",{},t);b.onclick=()=>aba(i);return b}));aba("chaves");
  $("wu").textContent=location.origin+"/api/compra?segredo=SEU_SEGREDO";
  const ghTok=localStorage.getItem("tss_gh")||"";$("tk").value=ghTok;$("etk").value=ghTok;
- await catalogo();await carregar()}
+ return catalogo().then(carregar)}
+async function iniciar(){
+ try{const s=await api("status");
+  if(!s.logado){$("l1").hidden=false;$("l2").hidden=true;return}
+  if(!s.admin){$("l1").hidden=false;$("l2").hidden=true;say("lm","A conta do Discord \""+s.nome+"\" não é administradora. Entre com outra conta.","err");$("goDc").textContent="Entrar com outra conta";return}
+  if(!s.verificado){$("l1").hidden=true;$("l2").hidden=false;$("l2t").textContent="Entrou como "+s.nome+". Clique para o bot mandar um código no seu privado do Discord.";return}
+  await abrirPainel()}
  catch(e){say("lm",e.message,"err")}}
-$("go").onclick=entrar;$("pw").onkeydown=e=>{if(e.key==="Enter")entrar()};
-if(sessionStorage.getItem("tss_adm")){$("pw").value=sessionStorage.getItem("tss_adm");entrar()}
+$("goDc").onclick=async()=>{try{await api("sair")}catch(e){}location.href="/auth/entrar/discord?volta=/admin"};
+$("goCod").onclick=async()=>{say("lm","Enviando…");try{await api("enviar_codigo");say("lm","Código enviado! Olhe seu privado no Discord (vale 5 minutos).","ok");$("cod").focus()}catch(e){say("lm",e.message,"err")}};
+$("goVer").onclick=async()=>{say("lm","Conferindo…");try{await api("verificar_codigo",{codigo:$("cod").value});say("lm","");await abrirPainel()}catch(e){say("lm",e.message,"err")}};
+$("cod").onkeydown=e=>{if(e.key==="Enter")$("goVer").click()};
+$("goTroca").onclick=async()=>{try{await api("sair")}catch(e){}location.href="/auth/entrar/discord?volta=/admin"};
+async function carregarAdmins(){try{const d=await api("admins_listar");pintarAdmins(d.admins)}catch(e){say("adm",e.message,"err")}}
+function pintarAdmins(l){tabela($("ta"),["Discord ID","Nome","Origem",""],l.map(a=>[a.id,a.nome||"—",a.fonte,a.fonte==="painel"?(()=>{const b=el("button",{className:"gh"},"Remover");b.onclick=async()=>{if(!confirm("Remover este admin?"))return;try{const d=await api("admins_remover",{id:a.id});pintarAdmins(d.admins);say("adm","Removido.","ok")}catch(e){say("adm",e.message,"err")}};return b})():""]))}
+$("addadm").onclick=async()=>{try{const d=await api("admins_add",{id:$("aid").value,nome:$("anome").value});$("aid").value="";$("anome").value="";pintarAdmins(d.admins);say("adm","Admin adicionado. No próximo login ele já entra (com o código no privado).","ok")}catch(e){say("adm",e.message,"err")}};
+$("sairadm").onclick=async()=>{try{await api("sair")}catch(e){}location.reload()};
+iniciar();
 
 $("cm-csv").onclick=()=>{const q=v=>'"'+String(v).replace(/"/g,'""')+'"';const rows=[["dia","hora","jogo","valor","chave_de_recuperacao","pedido","estado"],...LOGC.map(c=>[c.dia,c.hora,c.jogo,c.valor.toFixed(2),c.rec,c.pedido,c.reemb?"reembolsada":"paga"])];
  el("a",{href:URL.createObjectURL(new Blob(["\ufeff"+rows.map(r=>r.map(q).join(";")).join("\n")],{type:"text/csv"})),download:"compras-tss.csv"}).click()};
