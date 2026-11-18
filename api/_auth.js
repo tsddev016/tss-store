@@ -82,7 +82,7 @@ function exigirSessao(req) {
   return s;
 }
 function iniciarSessao(res, c) {
-  setCookie(res, SESSAO, assinar({ tipo: "sess", uid: c.uid, nome: c.nome, avatar: c.avatar || "", prov: c.prov, exp: Date.now() + DIAS_SESSAO * 86400000 }), DIAS_SESSAO * 86400);
+  setCookie(res, SESSAO, assinar({ tipo: "sess", uid: c.uid, nome: c.nome, avatar: c.avatar || "", prov: c.prov, did: c.did || "", exp: Date.now() + DIAS_SESSAO * 86400000 }), DIAS_SESSAO * 86400);
 }
 
 const volta = (v) => { v = String(v || ""); return v.startsWith("/") && !v.startsWith("//") && v.length < 300 ? v : "/conta"; };
