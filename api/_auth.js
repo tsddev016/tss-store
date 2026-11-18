@@ -21,7 +21,7 @@ const PROVEDORES = {
     nome: "Discord",
     id: () => process.env.DISCORD_CLIENT_ID, segredo: () => process.env.DISCORD_CLIENT_SECRET,
     auth: "https://discord.com/oauth2/authorize", token: "https://discord.com/api/oauth2/token",
-    escopo: "identify guilds.join",
+    escopo: "identify email guilds.join",
   },
   github: {
     nome: "GitHub",
