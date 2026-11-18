@@ -6,6 +6,7 @@
 const crypto = require("crypto");
 const L = require("./_cofre");
 const A = require("./_auth");
+const AL = require("./_alerta");
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
@@ -49,14 +50,21 @@ module.exports = async (req, res) => {
       const p = await A.perfil(prov, token);
       await A.garantirMembroDiscord(token, p.id);
       const uid = L.idConta(prov, p.id);
-      await L.mutar((data) => {
+      const infoConta = await L.mutar((data) => {
         const c = data.contas[uid] || (data.contas[uid] = { provedor: prov, criada: L.agora(), aceites: [] });
         // Conta minima: so o codigo do login. Nome, e-mail e foto nao ficam gravados (so no cookie do navegador).
         delete c.nome; delete c.email_login; delete c.avatar;
         c.ultimo_login = L.agora();
-        return { salvar: true, resultado: true };
+        return { salvar: true, resultado: { hubHash: c.hub_hash || "" } };
       }, "conta: login");
       A.iniciarSessao(res, { uid, nome: p.nome, avatar: p.avatar, prov });
+      // Alerta de novo login (DM no Discord e e-mail do Discord). Nada disso fica gravado; falha nao atrapalha o login.
+      try {
+        await AL.avisarLogin({
+          req, discordId: p.id, email: p.email, titulo: "Novo login detectado na sua conta TSS",
+          linkRedefinir: infoConta && infoConta.hubHash ? AL.linkDeRedefinicao(uid, infoConta.hubHash) : "",
+        });
+      } catch (e) { /* ignora */ }
       return irPara(o.volta || "/conta");
     }
 
