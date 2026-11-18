@@ -8,6 +8,8 @@ const L = require("./_cofre");
 const A = require("./_auth");
 const AL = require("./_alerta");
 
+const testes = new Map();
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const q = req.query || {};
@@ -26,6 +28,23 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, logado: !!s, nome: s ? s.nome : "", avatar: s ? s.avatar : "", provedor: s ? s.prov : "" });
     }
     if (acao === "sair") { A.limparCookie(res, A.SESSAO); return irPara("/"); }
+
+    if (acao === "testar_alerta") {
+      // Botao de teste da pagina Minha conta: manda o aviso de login para a propria pessoa (so DM; o e-mail so e lido num login de verdade).
+      if (req.method !== "POST") return res.status(405).json({ ok: false, erro: "Metodo nao permitido." });
+      const s = A.exigirSessao(req);
+      const agora = Date.now(), lista = (testes.get(s.uid) || []).filter((t) => agora - t < 600000);
+      lista.push(agora); testes.set(s.uid, lista); if (testes.size > 500) testes.clear();
+      if (lista.length > 4) return res.status(429).json({ ok: false, erro: "Muitos testes seguidos. Espere alguns minutos." });
+      if (!s.did) return res.status(409).json({ ok: false, erro: "Saia e entre de novo com o Discord para liberar o teste." });
+      const { data } = await L.lerChaves();
+      const c = data.contas[s.uid];
+      const r = await AL.avisarLogin({
+        req, discordId: s.did, email: "", titulo: "TESTE do alerta de login (nao e um login de verdade)",
+        linkRedefinir: c && c.hub_hash ? AL.linkDeRedefinicao(s.uid, c.hub_hash) : "",
+      });
+      return res.status(200).json({ ok: true, dm: r.dm, info: r.info ? { ip: r.info.ip, cidade: r.info.cidade, regiao: r.info.regiao, pais: r.info.pais, provedor: r.info.provedor } : null });
+    }
 
     if (acao === "hub") return await require("./_hub")(req, res);
 
@@ -57,7 +76,7 @@ module.exports = async (req, res) => {
         c.ultimo_login = L.agora();
         return { salvar: true, resultado: { hubHash: c.hub_hash || "" } };
       }, "conta: login");
-      A.iniciarSessao(res, { uid, nome: p.nome, avatar: p.avatar, prov });
+      A.iniciarSessao(res, { uid, nome: p.nome, avatar: p.avatar, prov, did: p.id });
       // Alerta de novo login (DM no Discord e e-mail do Discord). Nada disso fica gravado; falha nao atrapalha o login.
       try {
         await AL.avisarLogin({

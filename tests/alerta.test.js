@@ -43,7 +43,7 @@ test("aviso vai por DM e por e-mail com regiao, provedor, IP e link", async () =
   const reg = [];
   const link = AL.linkDeRedefinicao("conta1", "s1$aa$bb");
   const r = await AL.avisarLogin({ req, discordId: "123456789012345678", email: "pessoa@exemplo.com", titulo: "Novo login", linkRedefinir: link, fetchFn: fetchFalso(reg) });
-  assert.deepEqual(r, { dm: true, email: true });
+  assert.equal(r.dm, true); assert.equal(r.email, true); assert.equal(r.info.provedor, "Provedor Teste Telecom");
   const msg = reg.find((x) => x.url.endsWith("/channels/canal1/messages"));
   const corpo = JSON.parse(msg.opts.body).content;
   for (const t of ["Salvador", "Provedor Teste Telecom", "203.0.113.9", "https://exemplo.test/redefinir#t="]) assert.ok(corpo.includes(t), "faltou: " + t);
@@ -53,9 +53,9 @@ test("aviso vai por DM e por e-mail com regiao, provedor, IP e link", async () =
 
 test("sem e-mail so a DM sai; falha de rede nao lanca erro", async () => {
   const r = await AL.avisarLogin({ req, discordId: "123456789012345678", email: "", titulo: "x", fetchFn: fetchFalso([]) });
-  assert.deepEqual(r, { dm: true, email: false });
+  assert.equal(r.dm, true); assert.equal(r.email, false);
   const r2 = await AL.avisarLogin({ req, discordId: "123456789012345678", email: "a@b.co", titulo: "x", fetchFn: fetchFalso([], { falhaTudo: true }) });
-  assert.deepEqual(r2, { dm: false, email: false });
+  assert.equal(r2.dm, false); assert.equal(r2.email, false);
 });
 
 test("redefinir: troca a senha uma vez so, e o link velho morre", async () => {
@@ -77,4 +77,29 @@ test("token do Hub emitido antes da redefinicao deixa de valer", async () => {
   L.lerChaves = async () => ({ data, sha: "x" });
   const velho = A.assinar({ tipo: "hub", uid: "u1", usuario: "ze", iat: Date.now() - 60000, exp: Date.now() + 99999 });
   assert.equal((await chamar({ acao: "eu", token: velho })).status, 401);
+});
+
+test("botao de teste: precisa de sessao, manda DM e limita repeticoes", async () => {
+  const authH = require("../api/auth.js");
+  const origFetch = global.fetch;
+  const reg = [];
+  global.fetch = fetchFalso(reg);
+  L.lerChaves = async () => ({ data: { contas: { u9: { hub_hash: "s1$aa$bb" } } }, sha: "x" });
+  const cookie = (obj) => "tss_sess=" + encodeURIComponent(A.assinar(Object.assign({ tipo: "sess", exp: Date.now() + 99999 }, obj)));
+  const chamarTeste = async (cabecalhos) => {
+    const out = {};
+    const res = { setHeader() {}, status(c) { out.status = c; return this; }, json(j) { out.json = j; return this; } };
+    await authH({ method: "POST", query: { acao: "testar_alerta" }, headers: Object.assign({ "x-forwarded-for": "203.0.113.9" }, cabecalhos), body: {} }, res);
+    return out;
+  };
+  try {
+    assert.equal((await chamarTeste({})).status, 401);
+    assert.equal((await chamarTeste({ cookie: cookie({ uid: "u9", nome: "Ze", prov: "discord" }) })).status, 409);
+    const ok = await chamarTeste({ cookie: cookie({ uid: "u9", nome: "Ze", prov: "discord", did: "123456789012345678" }) });
+    assert.equal(ok.status, 200);
+    assert.equal(ok.json.dm, true);
+    assert.ok(reg.some((x) => x.url.endsWith("/channels/canal1/messages")));
+    for (let i = 0; i < 4; i++) await chamarTeste({ cookie: cookie({ uid: "u9", nome: "Ze", prov: "discord", did: "123456789012345678" }) });
+    assert.equal((await chamarTeste({ cookie: cookie({ uid: "u9", nome: "Ze", prov: "discord", did: "123456789012345678" }) })).status, 429);
+  } finally { global.fetch = origFetch; }
 });
