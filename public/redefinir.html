@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Redefinir senha do TSS Hub – TSS The Swift Store</title>
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<link rel="icon" type="image/svg+xml" href="/icon.svg">
+<meta name="theme-color" content="#0d0c07">
+<link rel="stylesheet" href="/legal.css">
+<style>
+.c{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.2rem 1.3rem;margin:1rem 0}
+.c h2{margin:.1rem 0 .6rem;font-size:1.05rem;color:var(--gold)}
+label{display:block;font-size:.85rem;color:var(--mute);margin:.7rem 0 .25rem}
+input{width:100%;background:#0f0e08;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:.65rem .8rem;font:inherit}
+button{display:inline-block;background:var(--gold);color:#141108;font-weight:800;border:0;border-radius:10px;padding:.65rem 1.1rem;font:700 .95rem inherit;font-family:inherit;cursor:pointer;margin-top:1rem}
+button:disabled{opacity:.5}
+.msg{min-height:1.3rem;margin-top:.8rem;font-size:.92rem}.ok{color:var(--ok)}.err{color:var(--err)}
+</style></head><body><main class="doc">
+<div class="top"><a href="/">← Voltar à loja</a><span class="mut">Redefinir senha</span></div>
+<h1>Redefinir a senha do TSS Hub</h1>
+<div class="c" id="form" hidden>
+  <h2>Nova senha</h2>
+  <p class="mut">Escolha uma senha nova para entrar no TSS Hub. Depois de trocar, o Hub pede o login de novo em todos os computadores.</p>
+  <label for="s1">Nova senha (8 a 72 caracteres)</label>
+  <input id="s1" type="password" autocomplete="new-password" maxlength="72">
+  <label for="s2">Repita a nova senha</label>
+  <input id="s2" type="password" autocomplete="new-password" maxlength="72">
+  <button id="ir">Trocar senha</button>
+  <div class="msg" id="msg" role="status"></div>
+</div>
+<div class="c" id="semlink" hidden>
+  <h2>Link inválido</h2>
+  <p>Este link está incompleto, venceu ou já foi usado. Entre no site com o Discord e crie uma nova senha em <a href="/conta">Minha conta</a>.</p>
+</div>
+<script>
+(function () {
+  var m = /(?:^#|&)t=([^&]+)/.exec(location.hash || "");
+  var token = m ? m[1] : "";
+  // tira o código do endereço para não ficar no histórico nem em capturas de tela
+  try { history.replaceState(null, "", location.pathname); } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  if (!token) { $("semlink").hidden = false; return; }
+  $("form").hidden = false;
+  function dizer(t, ok) { var el = $("msg"); el.textContent = t; el.className = "msg " + (ok ? "ok" : "err"); }
+  $("ir").addEventListener("click", function () {
+    var a = $("s1").value, b = $("s2").value;
+    if (a.length < 8) return dizer("A senha precisa ter pelo menos 8 caracteres.", false);
+    if (a !== b) return dizer("As duas senhas não são iguais.", false);
+    $("ir").disabled = true; dizer("Trocando...", true);
+    fetch("/api/auth?acao=hub", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ acao: "redefinir", token: token, senha: a }) })
+      .then(function (r) { return r.json().catch(function () { return {}; }); })
+      .then(function (j) {
+        if (j && j.ok) { $("s1").value = ""; $("s2").value = ""; dizer("Pronto! Senha trocada. Abra o TSS Hub e entre com a senha nova.", true); }
+        else { $("ir").disabled = false; dizer((j && j.erro) || "Não consegui trocar a senha.", false); }
+      })
+      .catch(function () { $("ir").disabled = false; dizer("Sem conexão. Tente de novo.", false); });
+  });
+})();
+</script>
+</main></body></html>

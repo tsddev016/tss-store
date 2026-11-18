@@ -5,6 +5,7 @@
 const crypto = require("crypto");
 const L = require("./_cofre");
 const A = require("./_auth");
+const AL = require("./_alerta");
 
 const COOKIE_ADM = "tss_adm";    // admin verificado (8 horas)
 const COOKIE_COD = "tss_admc";   // codigo enviado, esperando digitar (5 minutos)
@@ -109,6 +110,7 @@ async function etapas(req, res, acao, b) {
     if (digitado.length !== 12 || !L.seguro(hashCodigo(s.uid, digitado), c.h)) { await L.sleep(700); throw new L.Falha(401, "Codigo incorreto.", "codigo"); }
     A.limparCookie(res, COOKIE_COD);
     A.setCookie(res, COOKIE_ADM, A.assinar({ tipo: "adm", uid: s.uid, exp: Date.now() + HORAS * 3600000 }), HORAS * 3600);
+    try { await AL.avisarLogin({ req, discordId: rawId, email: "", titulo: "Login no painel de administrador da TSS" }); } catch (e) { /* ignora */ }
     return res.status(200).json({ ok: true });
   }
   throw new L.Falha(400, "Acao desconhecida.", "pedido");

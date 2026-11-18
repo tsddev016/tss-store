@@ -4,10 +4,12 @@
 //   POST { acao:"criar", usuario, senha } (com sessao do site) -> cria ou troca o login do Hub
 //   POST { acao:"entrar", usuario, senha }                      -> { token, usuario, jogos }
 //   POST { acao:"eu", token }                                   -> { usuario, jogos }
+//   POST { acao:"redefinir", token, senha }  (link do alerta de login) -> troca a senha do Hub
 const crypto = require("crypto");
 const L = require("./_cofre");
 const A = require("./_auth");
 const R = require("./_release");
+const AL = require("./_alerta");
 
 const DIAS_HUB = 30;
 const scrypt = (senha, salt) => new Promise((ok, no) => crypto.scrypt(String(senha), salt, 32, (e, k) => (e ? no(e) : ok(k))));
@@ -98,8 +100,24 @@ module.exports = async (req, res) => {
     const ok = await conferir(senha, achada ? achada[1].hub_hash : null);
     if (!achada || !ok || senha.length < 1) throw new L.Falha(401, "Usuario ou senha incorretos.", "login_hub");
     const uid = achada[0];
-    const token = A.assinar({ tipo: "hub", uid, usuario, exp: Date.now() + DIAS_HUB * 86400000 });
+    const token = A.assinar({ tipo: "hub", uid, usuario, iat: Date.now(), exp: Date.now() + DIAS_HUB * 86400000 });
     return res.status(200).json({ ok: true, token, usuario, jogos: jogosDaConta(data, uid, await nomesDeJogos()) });
+  }
+
+  if (acao === "redefinir") {
+    if (!limitar("redef:" + ip, 8, 600000)) throw new L.Falha(429, "Muitas tentativas. Espere alguns minutos.", "limite");
+    const t = A.verificar(String(b.token || ""));
+    const senha = String(b.senha || "");
+    if (!t || t.tipo !== "reset" || !t.uid) throw new L.Falha(400, "Este link venceu ou ja foi usado. Entre no site com o Discord e crie uma nova senha em Minha conta.", "link");
+    if (senha.length < 8 || senha.length > 72) throw new L.Falha(400, "A senha precisa ter de 8 a 72 caracteres.", "senha");
+    const hash = await gerarHash(senha);
+    await L.mutar((data) => {
+      const c = data.contas[t.uid];
+      if (!c || !c.hub_hash || AL.impressao(c.hub_hash) !== t.f) throw new L.Falha(400, "Este link venceu ou ja foi usado. Entre no site com o Discord e crie uma nova senha em Minha conta.", "link");
+      c.hub_hash = hash; c.hub_atualizado = L.agora(); c.hub_revogado = L.agora();
+      return { salvar: true, resultado: true };
+    }, "conta: senha do hub redefinida");
+    return res.status(200).json({ ok: true });
   }
 
   if (acao === "eu") {
@@ -108,6 +126,7 @@ module.exports = async (req, res) => {
     const { data } = await L.lerChaves();
     const c = data.contas[d.uid];
     if (!c || c.hub_user !== d.usuario) throw new L.Falha(401, "Login do Hub nao vale mais. Entre de novo.", "login_hub");
+    if (c.hub_revogado && (!d.iat || d.iat < Date.parse(c.hub_revogado))) throw new L.Falha(401, "Sua senha foi redefinida. Entre de novo.", "login_hub");
     return res.status(200).json({ ok: true, usuario: d.usuario, jogos: jogosDaConta(data, d.uid, await nomesDeJogos()) });
   }
 

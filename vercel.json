@@ -3,6 +3,23 @@
   "outputDirectory": "public",
   "headers": [
     {
+      "source": "/redefinir",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
+      ]
+    },
+    {
       "source": "/catalog.json",
       "headers": [
         {
