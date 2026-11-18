@@ -47,6 +47,10 @@ button:disabled{opacity:.5}
     <label for="hs">Senha (mínimo 8 caracteres)</label><input id="hs" type="password" autocomplete="new-password" maxlength="72">
     <div class="row2"><button id="hsalvar">Salvar login do Hub</button></div><div class="msg" id="hm"></div></div>
 
+  <div class="c"><h2>Alerta de login</h2>
+    <p class="mut">A cada login no site, o bot da TSS manda uma mensagem privada no seu Discord com a região, o provedor de internet e o IP do acesso. Use o botão para ver como a mensagem chega.</p>
+    <div class="row2"><button class="g" id="testealerta">Enviar alerta de teste</button></div><div class="msg" id="tm"></div></div>
+
   <div class="c"><h2>Minhas compras</h2><div id="compras" class="mut">Carregando…</div><div class="msg" id="cm"></div></div>
 
   <div class="c"><h2>Privacidade e seus direitos</h2>
@@ -111,6 +115,17 @@ $("hsalvar").onclick=function(){
     b.disabled=false;
     if(x.ok){$("hs").value="";say("hm","Pronto! Use o usuário \""+x.usuario+"\" e essa senha no TSS Hub.","ok");carregarHub()}else say("hm",x.erro||"Erro","err");
   }).catch(function(){b.disabled=false;say("hm","Sem conexão.","err")});
+};
+$("testealerta").onclick=function(){
+  var b=$("testealerta");b.disabled=true;say("tm","Enviando…");
+  api("/api/auth?acao=testar_alerta",{}).then(function(x){
+    b.disabled=false;
+    if(!x.ok){say("tm",x.erro||"Erro","err");return}
+    var i=x.info||{};var onde=[i.cidade,i.regiao,i.pais].filter(Boolean).join(", ")||"não identificada";
+    var detalhe=" Região: "+onde+" · Provedor: "+(i.provedor||"não identificado")+" · IP: "+(i.ip||"não identificado")+".";
+    if(x.dm)say("tm","Mensagem enviada! Olhe suas mensagens privadas no Discord."+detalhe,"ok");
+    else say("tm","O bot não conseguiu mandar a mensagem privada. No Discord, abra as configurações de privacidade do servidor da TSS e permita mensagens diretas de membros."+detalhe,"err");
+  }).catch(function(){b.disabled=false;say("tm","Sem conexão.","err")});
 };
 $("exp").onclick=function(){
   api("/api/conta",{acao:"exportar"}).then(function(x){
