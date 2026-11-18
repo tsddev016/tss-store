@@ -33,7 +33,8 @@
 <ul>
 <li><b>Mercado Pago</b>: processa o Pix (recebe nome, CPF e e-mail do pagador).</li>
 <li><b>Game Market</b>: quando você compra por lá, ela nos envia os dados do pedido.</li>
-<li><b>Discord</b>: login e entrada automática no servidor da TSS (só o ID e o nome de usuário; sem e-mail).</li>
+<li><b>Discord</b>: login e entrada automática no servidor da TSS (ID e nome de usuário). No login também lemos o e-mail verificado da sua conta do Discord, só para mandar o aviso de novo login; ele não é guardado.</li>
+<li><b>Aviso de novo login</b>: a cada login mandamos uma mensagem no seu Discord (e por e-mail, quando o envio estiver ativo) com data, região, nome do provedor de internet e endereço IP do acesso, e um link para redefinir a senha do TSS Hub. Esses dados só são usados para montar o aviso e não ficam gravados. Para descobrir a região e o provedor, o endereço IP é consultado no serviço ipwho.is.</li>
 <li><b>GitHub</b> (repositório privado) e <b>Vercel</b> (hospedagem): guardam e processam os dados como operadores.</li>
 <li><b>Autoridades</b>, quando houver obrigação legal ou ordem judicial.</li>
 </ul>
