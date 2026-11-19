@@ -10,6 +10,7 @@ const L = require("./_cofre");
 const A = require("./_auth");
 const R = require("./_release");
 const AL = require("./_alerta");
+const AJ = require("./_adminjogos");
 
 const DIAS_HUB = 30;
 const scrypt = (senha, salt) => new Promise((ok, no) => crypto.scrypt(String(senha), salt, 32, (e, k) => (e ? no(e) : ok(k))));
@@ -46,6 +47,12 @@ function jogosDaConta(data, uid, nomes) {
     const ativa = !(rb && rb.estado === "reembolsado") && !(k && k.revogada);
     return ativa ? { jogo: r.jogo, nome: nomes[r.jogo] || r.jogo, pedido: p, chave: L.chaveDoPedido(p, r.jogo) } : null;
   }).filter(Boolean);
+}
+
+// Dono/admin recebe todos os jogos do catalogo na conta (ver _adminjogos.js) e depois lemos o cofre ja atualizado.
+async function dadosComJogosDoAdmin(uid) {
+  await AJ.garantir(uid);
+  return (await L.lerChaves()).data;
 }
 
 function tokenDoPedido(req, b) {
@@ -101,7 +108,8 @@ module.exports = async (req, res) => {
     if (!achada || !ok || senha.length < 1) throw new L.Falha(401, "Usuario ou senha incorretos.", "login_hub");
     const uid = achada[0];
     const token = A.assinar({ tipo: "hub", uid, usuario, iat: Date.now(), exp: Date.now() + DIAS_HUB * 86400000 });
-    return res.status(200).json({ ok: true, token, usuario, jogos: jogosDaConta(data, uid, await nomesDeJogos()) });
+    const atual = await dadosComJogosDoAdmin(uid);
+    return res.status(200).json({ ok: true, token, usuario, jogos: jogosDaConta(atual, uid, await nomesDeJogos()) });
   }
 
   if (acao === "redefinir") {
@@ -127,7 +135,8 @@ module.exports = async (req, res) => {
     const c = data.contas[d.uid];
     if (!c || c.hub_user !== d.usuario) throw new L.Falha(401, "Login do Hub nao vale mais. Entre de novo.", "login_hub");
     if (c.hub_revogado && (!d.iat || d.iat < Date.parse(c.hub_revogado))) throw new L.Falha(401, "Sua senha foi redefinida. Entre de novo.", "login_hub");
-    return res.status(200).json({ ok: true, usuario: d.usuario, jogos: jogosDaConta(data, d.uid, await nomesDeJogos()) });
+    const atual = await dadosComJogosDoAdmin(d.uid);
+    return res.status(200).json({ ok: true, usuario: d.usuario, jogos: jogosDaConta(atual, d.uid, await nomesDeJogos()) });
   }
 
   throw new L.Falha(400, "Acao desconhecida.", "pedido");
