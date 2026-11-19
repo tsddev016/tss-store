@@ -68,7 +68,7 @@ function pintar(g){
   else acao='<p class="soon">Em breve</p>';
   var tags=(g.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
   var shots=(g.screenshots||[]).filter(function(u){return /^https:\/\//i.test(u)}).map(function(u){return'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="Captura de tela de '+esc(g.name)+'" loading="lazy"></a>'}).join("");
-  var v=video(g.video_url);
+  var vl=(Array.isArray(g.videos)&&g.videos.length?g.videos:(g.video_url?[g.video_url]:[])),v=vl.map(video).filter(Boolean).join('<div style="height:12px"></div>');
   var h='<img class="banner" src="'+esc(img(g.banner_url||g.capsule_url))+'" alt="'+esc(g.name)+'">';
   h+='<h1>'+esc(g.name)+'</h1><div class="tags">'+tags+'</div><div class="meta">por '+esc(g.developer||"TSS")+' · v'+esc(g.version)+(g.size_mb?' · '+esc(g.size_mb)+' MB':'')+'</div>';
   h+='<div class="grid"><div class="stack">';

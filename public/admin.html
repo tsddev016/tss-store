@@ -15,6 +15,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 code,.k{font-family:ui-monospace,Consolas,monospace}.k{background:#0f121a;border:1px dashed var(--ac);border-radius:8px;padding:12px;font-size:20px;letter-spacing:1px;text-align:center;word-break:break-all}
 .chk{display:flex;align-items:center;gap:8px;margin-top:12px}.chk input{width:auto}
 img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-top:8px;display:block}
+.mi{display:flex;align-items:center;gap:10px;margin:6px 0;padding:6px;border:1px solid var(--line);border-radius:8px}.mi img{width:72px;height:44px;object-fit:cover;border-radius:6px}.mi .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.85rem}.mi.rm{opacity:.45}.mi.rm .nm{text-decoration:line-through}
 </style></head><body><div class="w">
 <h1>TSS · Painel do administrador</h1><p class="mut">Chaves, pedidos, jogos publicados e publicação de versões.</p>
 <div class="card" id="login"><h2>Entrar</h2>
@@ -58,8 +59,13 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <label>Tags (separadas por virgula)</label><input id="etag" placeholder="TERROR, ONLINE, DEMO">
 <label>Changelog</label><input id="ech">
 <label>Arquivo que abre (launch)</label><input id="el" placeholder="Pasta/sistema/executor.py">
-<label>Video de gameplay (link do YouTube ou .mp4 https)</label><input id="ev" placeholder="https://www.youtube.com/watch?v=...">
-<label>Capturas de tela (um link https por linha)</label><textarea id="eshots" rows="3" placeholder="https://..."></textarea>
+<label>Videos de gameplay (arquivo .mp4 ou .webm, ate 60 MB cada, pode escolher varios)</label>
+<input id="evf" type="file" accept="video/mp4,video/webm" multiple>
+<div id="evlist"></div>
+<label>Fotos / capturas de tela (jpg, png ou webp, ate 5 MB cada, pode escolher varias)</label>
+<input id="esf" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+<div id="eslist"></div>
+<p class="mut">Os arquivos sobem para o proprio site (nada de YouTube nem link). Clique em <b>Remover</b> para tirar uma midia ja publicada; ela sai ao salvar.</p>
 <label>Requisitos do PC (aparece na pagina do jogo)</label><textarea id="ereq" rows="3" placeholder="Processador, placa de video, RAM, espaco"></textarea>
 <label>Capa / banner (jpg ou png)</label><input id="eimg" type="file" accept="image/jpeg,image/png,image/webp">
 <img class="prev" id="eprev" alt="" hidden>
@@ -148,7 +154,7 @@ function preencherEdit(){
  const id=$("ej").value;const g=(CAT.games||[]).find(x=>x.id===id);if(!g)return;
  $("en").value=g.name||"";$("ed").value=g.developer||"";$("ep").value=Number(g.preco)||0;
  $("eprot").checked=!!g.protegido;$("edes").value=g.description||"";
- $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";$("el").value=g.launch||"";$("ev").value=g.video_url||"";$("eshots").value=(g.screenshots||[]).join("\n");$("ereq").value=g.requisitos||"";
+ $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";$("el").value=g.launch||"";carregarMidia(g);$("ereq").value=g.requisitos||"";
  if(g.capsule_url){$("eprev").src="/"+g.capsule_url.replace(/^\//,"")+"?t="+Date.now();$("eprev").hidden=false}
  else{$("eprev").hidden=true}
  $("eprot-hint").textContent=$("eprot").checked
@@ -243,6 +249,70 @@ async function confirmarNoCatalogo(id,ver){
 }
 async function gravarCat(cat,sha,msg){cat.updated=new Date().toISOString().slice(0,10);const r=await gh(`/repos/${OW}/${ST}/contents/public/catalog.json`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({message:msg,content:b64(JSON.stringify(cat,null,2)+"\n"),sha})});if(!r.ok)throw new Error("Nao consegui gravar o catalogo ("+r.status+").")}
 
+/* ---- midia do jogo: fotos e videos enviados como ARQUIVO (sem links) ---- */
+const SITE="https://tss-store.vercel.app/",MAXV=60*1024*1024,MAXF=5*1024*1024;
+let MID={videos:[],shots:[]};
+function fileB64(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]||"");r.onerror=()=>no(new Error("Nao consegui ler "+f.name));r.readAsDataURL(f)})}
+function desenharMidia(){
+ [["evlist",MID.videos,true],["eslist",MID.shots,false]].forEach(([id,lista,vid])=>{
+  const box=$(id);box.textContent="";
+  lista.forEach(it=>{
+   const b=el("button",{className:"s",type:"button"},it.rm?"Desfazer":"Remover");
+   b.onclick=()=>{it.rm=!it.rm;desenharMidia()};
+   box.append(el("div",{className:"mi"+(it.rm?" rm":"")},vid?el("span",{},"🎬"):el("img",{src:it.url,alt:"",loading:"lazy"}),el("span",{className:"nm"},it.url.replace(/^https?:\/\//,"")),b));
+  });
+ });
+}
+function carregarMidia(g){
+ MID.videos=(Array.isArray(g.videos)&&g.videos.length?g.videos:(g.video_url?[g.video_url]:[])).map(u=>({url:u,rm:false}));
+ MID.shots=(g.screenshots||[]).map(u=>({url:u,rm:false}));
+ $("evf").value="";$("esf").value="";desenharMidia();
+}
+const extDe=(f,ok)=>{const e=(f.name.split(".").pop()||"").toLowerCase().replace("jpeg","jpg");return ok.includes(e)?e:""};
+/* Um unico commit com todos os arquivos (um deploy so). */
+async function commitar(arqs,msg,prog){
+ const J={"Content-Type":"application/json"},blobs=[],env=arqs.filter(a=>!a.del).length;let n=0;
+ for(const a of arqs){
+  if(a.del){blobs.push({path:a.path,sha:null});continue}
+  n++;prog("Enviando "+a.path.split("/").pop()+" ("+n+"/"+env+")…");
+  const r=await gh(`/repos/${OW}/${ST}/git/blobs`,{method:"POST",headers:J,body:JSON.stringify({content:await fileB64(a.file),encoding:"base64"})});
+  if(!r.ok)throw new Error("Falha ao enviar "+a.path.split("/").pop()+" ("+r.status+"). Confira o token (Contents: read/write no tss-store).");
+  blobs.push({path:a.path,sha:(await r.json()).sha});
+ }
+ prog("Publicando no site…");
+ for(let t=0;t<5;t++){
+  const rr=await gh(`/repos/${OW}/${ST}/git/ref/heads/main`);if(!rr.ok)throw new Error("Nao consegui ler o repositorio ("+rr.status+").");
+  const head=(await rr.json()).object.sha;
+  const cr=await gh(`/repos/${OW}/${ST}/git/commits/${head}`);if(!cr.ok)throw new Error("Nao consegui ler o repositorio ("+cr.status+").");
+  const base=(await cr.json()).tree.sha;
+  const tr=await gh(`/repos/${OW}/${ST}/git/trees`,{method:"POST",headers:J,body:JSON.stringify({base_tree:base,tree:blobs.map(b=>({path:b.path,mode:"100644",type:"blob",sha:b.sha}))})});
+  if(!tr.ok)throw new Error("Falha ao montar o commit ("+tr.status+").");
+  const cm=await gh(`/repos/${OW}/${ST}/git/commits`,{method:"POST",headers:J,body:JSON.stringify({message:msg,tree:(await tr.json()).sha,parents:[head]})});
+  if(!cm.ok)throw new Error("Falha ao criar o commit ("+cm.status+").");
+  const up=await gh(`/repos/${OW}/${ST}/git/refs/heads/main`,{method:"PATCH",headers:J,body:JSON.stringify({sha:(await cm.json()).sha,force:false})});
+  if(up.ok)return;
+  if(up.status===422||up.status===409){await dorme(500*(t+1));continue}
+  throw new Error("Falha ao publicar ("+up.status+").");
+ }
+ throw new Error("O repositorio mudou varias vezes ao mesmo tempo. Tente de novo.");
+}
+async function enviarMidia(id){
+ const fv=[...$("evf").files],fs=[...$("esf").files],novos=[],ts=Date.now().toString(36);
+ if(fv.length>4)throw new Error("No maximo 4 videos por vez.");
+ if(fs.length>20)throw new Error("No maximo 20 fotos por vez.");
+ fv.forEach((f,i)=>{const e=extDe(f,["mp4","webm"]);if(!e)throw new Error(f.name+": use video .mp4 ou .webm.");if(f.size>MAXV)throw new Error(f.name+": video com mais de 60 MB. Comprima o arquivo.");novos.push({tipo:"v",f,path:`public/media/${id}/video-${ts}-${i+1}.${e}`})});
+ fs.forEach((f,i)=>{const e=extDe(f,["jpg","png","webp"]);if(!e)throw new Error(f.name+": use foto jpg, png ou webp.");if(f.size>MAXF)throw new Error(f.name+": foto com mais de 5 MB.");novos.push({tipo:"f",f,path:`public/media/${id}/foto-${ts}-${i+1}.${e}`})});
+ if(novos.length)await commitar(novos.map(n=>({path:n.path,file:n.f})),"Midia do jogo "+id,t=>say("em",t));
+ const url=p=>SITE+p.replace(/^public\//,"");
+ return{
+  videos:MID.videos.filter(x=>!x.rm).map(x=>x.url).concat(novos.filter(n=>n.tipo==="v").map(n=>url(n.path))),
+  shots:MID.shots.filter(x=>!x.rm).map(x=>x.url).concat(novos.filter(n=>n.tipo==="f").map(n=>url(n.path))),
+  apagar:MID.videos.concat(MID.shots).filter(x=>x.rm&&x.url.indexOf(SITE+"media/")===0).map(x=>"public/"+x.url.slice(SITE.length))
+ };
+}
+/* Apaga do repositorio so os arquivos de midia que o admin removeu (nao quebra se algum ja nao existir). */
+async function apagarMidia(paths){if(!paths.length)return;try{await commitar(paths.map(p=>({path:p,del:true})),"Remove midia antiga do jogo",()=>{})}catch(e){}}
+
 /* ---- editar jogo ---- */
 $("es").onclick=async()=>{
  const b=$("es");b.disabled=true;
@@ -267,6 +337,7 @@ $("es").onclick=async()=>{
    if(!put.ok)throw new Error("Falha ao enviar capa ("+put.status+").");
    capa="capsules/"+id+"."+(ext==="png"||ext==="webp"?ext:"jpg");
   }
+  const novos=await enviarMidia(id);
   say("em","Gravando no catalogo…");
   await salvarCat(cat=>{
    const g=(cat.games||[]).find(x=>x.id===id);if(!g)throw new Error("Jogo nao encontrado.");
@@ -278,13 +349,14 @@ $("es").onclick=async()=>{
    g.tags=$("etag").value.split(",").map(t=>t.trim()).filter(Boolean);
    g.changelog=$("ech").value.trim()||g.changelog;
    g.launch=$("el").value.trim()||g.launch||"";
-   g.video_url=$("ev").value.trim();g.screenshots=$("eshots").value.split("\n").map(s=>s.trim()).filter(Boolean);g.requisitos=$("ereq").value.trim();
+   g.videos=novos.videos;g.video_url=novos.videos[0]||"";g.screenshots=novos.shots;g.requisitos=$("ereq").value.trim();
    if(g.protegido){g.download_url=""}
    else if(!g.download_url||g.download_url.includes("mediafire")){
     g.download_url="https://tss-store.vercel.app/api/baixar-gratis?jogo="+encodeURIComponent(id);
    }
    if(capa)g.capsule_url=capa;
   },"Edita jogo "+id);
+  await apagarMidia(novos.apagar);
   say("em","Salvo. O site atualiza em ~30 segundos.","ok");
   await catalogo();
  }catch(e){say("em",e.message,"err")}b.disabled=false;
