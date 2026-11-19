@@ -22,9 +22,15 @@
       "changelog": "",
       "protegido": true,
       "preco": 4.5,
-      "video_url": "",
-      "screenshots": [],
-      "requisitos": ""
+      "video_url": "https://tss-store.vercel.app/media/backrooms/video-mwni018m-1.mp4",
+      "screenshots": [
+        "https://tss-store.vercel.app/media/backrooms/foto-mwni018m-1.png",
+        "https://tss-store.vercel.app/media/backrooms/foto-mwni018m-2.jpg"
+      ],
+      "requisitos": "",
+      "videos": [
+        "https://tss-store.vercel.app/media/backrooms/video-mwni018m-1.mp4"
+      ]
     },
     {
       "id": "backrooms_demo",
