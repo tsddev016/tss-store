@@ -96,7 +96,17 @@
       "launch": "nada",
       "changelog": "",
       "protegido": false,
-      "preco": 0
+      "preco": 0,
+      "videos": [
+        "https://tss-store.vercel.app/media/bigcity/video-mwnieiue-1.mp4"
+      ],
+      "video_url": "https://tss-store.vercel.app/media/bigcity/video-mwnieiue-1.mp4",
+      "screenshots": [
+        "https://tss-store.vercel.app/media/bigcity/foto-mwnieiue-1.jpg",
+        "https://tss-store.vercel.app/media/bigcity/foto-mwnieiue-2.png",
+        "https://tss-store.vercel.app/media/bigcity/foto-mwnieiue-3.png"
+      ],
+      "requisitos": ""
     }
   ]
 }
