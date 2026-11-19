@@ -2,6 +2,7 @@
 const L = require("./_cofre");
 const A = require("./_auth");
 const R = require("./_release");
+const AJ = require("./_adminjogos");
 
 const mascararCpf = (c) => (c && c.length === 11 ? c.slice(0, 3) + ".***.***-" + c.slice(9) : "");
 const emailOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.length <= 120;
@@ -26,6 +27,8 @@ module.exports = async (req, res) => {
     const s = A.exigirSessao(req);
 
     if (req.method === "GET") {
+      // Dono/admin: libera todos os jogos do catalogo na conta antes de listar (ver _adminjogos.js).
+      await AJ.garantir(s.uid);
       const { data } = await L.lerChaves();
       const c = data.contas[s.uid];
       if (!c) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
@@ -78,7 +81,7 @@ module.exports = async (req, res) => {
 
     if (acao === "exportar") {
       const { data } = await L.lerChaves();
-      const c = data.contas[s.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada.", "login");
+      const c = data.contas[s.uid]; if (!c) throw new L.Falha(401, "Conta nao encontrada. Entre de novo.", "login");
       const aceites = (c.aceites || []).map((a) => ({ versao: a.versao, em: a.em }));
       return res.status(200).json({ ok: true, exportado_em: L.agora(),
         conta: { provedor: c.provedor, criada: c.criada, ultimo_login: c.ultimo_login },
