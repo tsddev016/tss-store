@@ -69,7 +69,16 @@
       "launch": "Ashfall_Instalador_v4/sistema/executor.py",
       "changelog": "",
       "protegido": true,
-      "preco": 1.25
+      "preco": 1.25,
+      "videos": [
+        "https://tss-store.vercel.app/media/ashfall/video-mwni1bf3-1.mp4"
+      ],
+      "video_url": "https://tss-store.vercel.app/media/ashfall/video-mwni1bf3-1.mp4",
+      "screenshots": [
+        "https://tss-store.vercel.app/media/ashfall/foto-mwni1bf3-1.png",
+        "https://tss-store.vercel.app/media/ashfall/foto-mwni1bf3-2.jpg"
+      ],
+      "requisitos": ""
     }
   ]
 }
