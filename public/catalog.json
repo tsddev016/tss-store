@@ -82,7 +82,7 @@
     },
     {
       "id": "bigcity",
-      "name": "BigCity",
+      "name": "Big City",
       "version": "1",
       "developer": "ts_dv",
       "description": "Pre venda",
@@ -93,7 +93,7 @@
       "download_url": "",
       "sha256": "6775e777b3050a355998d46aa381bc50d99a2823bc05ecf0e375c31d5a8de35e",
       "size_mb": 1,
-      "launch": "nada",
+      "launch": "BigCity/Jogar.bat",
       "changelog": "",
       "protegido": true,
       "preco": 6,
@@ -106,7 +106,9 @@
         "https://tss-store.vercel.app/media/bigcity/foto-mwnihv06-2.png",
         "https://tss-store.vercel.app/media/bigcity/foto-mwnihv06-3.png"
       ],
-      "requisitos": ""
+      "requisitos": "",
+      "prevenda": true,
+      "lancamento": "2026-11-30T00:00"
     }
   ]
 }
