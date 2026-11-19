@@ -90,22 +90,16 @@
         "WORDBOXS"
       ],
       "capsule_url": "capsules/bigcity.png",
-      "download_url": "https://tss-store.vercel.app/api/baixar-gratis?jogo=bigcity",
+      "download_url": "",
       "sha256": "6775e777b3050a355998d46aa381bc50d99a2823bc05ecf0e375c31d5a8de35e",
       "size_mb": 1,
       "launch": "nada",
       "changelog": "",
-      "protegido": false,
-      "preco": 0,
-      "videos": [
-        "https://tss-store.vercel.app/media/bigcity/video-mwnieiue-1.mp4"
-      ],
-      "video_url": "https://tss-store.vercel.app/media/bigcity/video-mwnieiue-1.mp4",
-      "screenshots": [
-        "https://tss-store.vercel.app/media/bigcity/foto-mwnieiue-1.jpg",
-        "https://tss-store.vercel.app/media/bigcity/foto-mwnieiue-2.png",
-        "https://tss-store.vercel.app/media/bigcity/foto-mwnieiue-3.png"
-      ],
+      "protegido": true,
+      "preco": 6,
+      "videos": [],
+      "video_url": "",
+      "screenshots": [],
       "requisitos": ""
     }
   ]
