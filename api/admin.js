@@ -2,6 +2,7 @@
 const L = require("./_cofre");
 const D = require("./_discord");
 const AD = require("./_adminauth");
+const PRE = require("./_prevenda");
 
 const JOGO_OK = /^[a-z0-9_-]{1,40}$/;
 
@@ -159,6 +160,27 @@ module.exports = async (req, res) => {
       const cod = L.norm(b.codigo);
       await L.mutar((data) => { const ex = !!data.cupons[cod]; delete data.cupons[cod]; return { salvar: ex, resultado: ex }; }, "cupom apagado: " + cod);
       return res.status(200).json({ ok: true });
+    }
+
+    // Pre-venda: o codigo que libera o jogo. "ver" mostra o atual (cria o primeiro se nao existir); "novo" troca e invalida o anterior.
+    if (acao === "prevenda_codigo" || acao === "prevenda_novo_codigo") {
+      const jogo = String(b.jogo || "").toLowerCase();
+      if (!PRE.JOGO_OK.test(jogo)) throw new L.Falha(400, "Jogo invalido.", "pedido");
+      const novo = acao === "prevenda_novo_codigo";
+      const r = await L.mutar((data) => {
+        const ant = data.prevenda[jogo];
+        if (ant && ant.h && !novo) {
+          const c = PRE.codigoPrevenda(jogo, ant.rodada);
+          if (L.seguro(ant.h, PRE.hashCodigo(c))) return { salvar: false, resultado: { codigo: c, rodada: ant.rodada, em: ant.em } };
+        }
+        const rodada = ant ? (Number(ant.rodada) || 0) + 1 : 1;
+        const c = PRE.codigoPrevenda(jogo, rodada);
+        const em = L.agora();
+        data.prevenda[jogo] = { rodada, h: PRE.hashCodigo(c), em };
+        return { salvar: true, resultado: { codigo: c, rodada, em } };
+      }, "pre-venda: codigo de " + jogo);
+      if (novo) await D.avisarAdmin("Codigo de pre-venda trocado", "Jogo `" + jogo + "`");
+      return res.status(200).json({ ok: true, jogo, codigo: r.codigo, rodada: r.rodada, em: r.em });
     }
 
     if (acao === "discord_registrar") {

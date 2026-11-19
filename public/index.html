@@ -186,6 +186,8 @@ function comprar(jogo,preco,nome){
   var q="jogo="+encodeURIComponent(jogo)+"&preco="+encodeURIComponent(preco||0)+"&nome="+encodeURIComponent(nome||"");
   location.href="/pagar.html?"+q;
 }
+function dataBR(s){var m=String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+"/"+m[2]+"/"+m[1]:""}
+function emPrevenda(x){if(!x||x.prevenda!==true)return false;var m=String(x.lancamento||"").match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);if(!m)return true;return Date.UTC(+m[1],+m[2]-1,+m[3],+(m[4]||0)+3,+(m[5]||0))>Date.now()}
 function card(x){
   var acao;
   if(x.download_url){acao='<a class="btn" href="'+esc(safe(x.download_url))+'">Baixar</a>'}
@@ -194,7 +196,8 @@ function card(x){
     acao='<button class="btn" data-jogo="'+esc(x.id)+'" data-preco="'+esc(x.preco||0)+'" data-nome="'+esc(x.name)+'">'+esc(label)+'</button>'}
   else{acao="<small>Em breve</small>"}
   var badge=x.protegido?fmtPreco(x.preco):((x.download_url||x.disponivel)?"GRÁTIS":"EM BREVE");
-  var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"");
+  if(emPrevenda(x))badge="PRÉ-VENDA · "+badge;
+  var meta="v"+esc(x.version)+(x.size_mb?" · "+esc(x.size_mb)+" MB":"")+(emPrevenda(x)&&x.lancamento?" · libera em "+dataBR(x.lancamento):"");
   var tags=(x.tags||[]).map(function(t){return"<span>"+esc(t)+"</span>"}).join("");
   return '<article class="card"><div class="ph"><a href="/jogo/'+encodeURIComponent(x.id)+'" style="display:block" aria-label="Ver pagina de '+esc(x.name)+'"><img src="'+esc(safe(x.capsule_url))+'" alt="'+esc(x.name)+' - capa do jogo" width="640" height="360" loading="lazy"></a><span class="badge">'+esc(badge)+'</span></div><div class="b"><h3><a href="/jogo/'+encodeURIComponent(x.id)+'" style="text-decoration:none">'+esc(x.name)+'</a></h3><div class="tags">'+tags+'</div><p>'+esc(x.description)+'</p><div class="meta"><small>'+meta+'</small>'+acao+'</div></div></article>';
 }

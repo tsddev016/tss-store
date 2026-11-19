@@ -58,6 +58,8 @@ function video(u){
   return"";
 }
 var qid=new URLSearchParams(location.search).get("id");var id=qid||decodeURIComponent((location.pathname.split("/").filter(Boolean).pop()||"")).replace(/\.html$/,"");
+function dataBR(s){var m=String(s||"").match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+"/"+m[2]+"/"+m[1]:""}
+function emPrevenda(x){if(!x||x.prevenda!==true)return false;var m=String(x.lancamento||"").match(/^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/);if(!m)return true;return Date.UTC(+m[1],+m[2]-1,+m[3],+(m[4]||0)+3,+(m[5]||0))>Date.now()}
 function pintar(g){
   document.title=g.name+" – TSS The Swift Store";
   var pago=!!g.protegido,livre=!pago&&(g.download_url||g.disponivel);
@@ -75,7 +77,7 @@ function pintar(g){
   if(v)h+='<div class="box"><h2>Gameplay</h2>'+v+'</div>';
   h+='<div class="box"><h2>Sobre o jogo</h2>'+texto(g.description)+'</div>';
   if(shots)h+='<div class="box"><h2>Capturas de tela</h2><div class="shots">'+shots+'</div></div>';
-  h+='</div><div class="stack"><div class="box"><div class="price">'+(pago?preco(g.preco):livre?"Grátis":"Em breve")+'</div>'+acao+(pago?'<ul class="seg"><li>Pagamento via Pix (Mercado Pago)</li><li>Reembolso em até 7 dias</li><li>Atualizações automáticas pelo TSS Hub</li></ul>':'<ul class="seg"><li>Atualizações automáticas pelo TSS Hub</li></ul>')+'</div>';
+  h+='</div><div class="stack"><div class="box"><div class="price">'+(pago?preco(g.preco):livre?"Grátis":"Em breve")+'</div>'+acao+(pago?'<ul class="seg">'+(emPrevenda(g)?'<li>Pré-venda: você compra e baixa agora; o jogo só abre no lançamento'+(g.lancamento?' ('+dataBR(g.lancamento)+')':'')+'.</li>':'')+'<li>Pagamento via Pix (Mercado Pago)</li><li>Reembolso em até 7 dias</li><li>Atualizações automáticas pelo TSS Hub</li></ul>':'<ul class="seg"><li>Atualizações automáticas pelo TSS Hub</li></ul>')+'</div>';
   if(g.requisitos)h+='<div class="box"><h2>Requisitos do PC</h2><p class="pre">'+esc(g.requisitos)+'</p></div>';
   if(g.changelog)h+='<div class="box"><h2>Novidades da v'+esc(g.version)+'</h2><p class="pre">'+esc(g.changelog)+'</p></div>';
   h+='</div></div>';

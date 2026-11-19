@@ -1,6 +1,8 @@
 // TSS Sentinela - confere a chave de ativacao e libera o download do jogo.
 const crypto = require("crypto");
 const R = require("./_release");
+const L = require("./_cofre");
+const PRE = require("./_prevenda");
 
 const COFRE = process.env.COFRE_REPO || "tsddev016/tss-cofre";
 const MAX_PADRAO = 2;
@@ -70,6 +72,36 @@ async function linkDoJogo(jogo) {
   }
 }
 
+
+// ---- Pre-venda: o jogo chama estas duas acoes toda vez que abre (sem chave de compra; o codigo e que libera) ----
+async function jogoDoCatalogo(jogo) {
+  const cat = await R.lerCatalogo();
+  if (!cat) throw new Falha(503, "Catalogo indisponivel. Tente de novo.", "catalogo");
+  const g = (cat.games || []).find((x) => x.id === jogo);
+  if (!g) throw new Falha(404, "Jogo nao encontrado.", "sem_jogo");
+  return g;
+}
+
+async function prevenda(acao, jogo, codigo, res) {
+  const g = await jogoDoCatalogo(jogo);
+  const agora = Date.now();
+  const est = PRE.estado(g, agora);
+  if (acao === "prevenda_status") {
+    return res.status(200).json({ ok: true, prevenda: est.prevenda, lancamento: est.lancamento, agora: new Date(agora).toISOString() });
+  }
+  // prevenda_verificar
+  if (!est.prevenda) return res.status(200).json({ ok: true, liberado: true });
+  const { data } = await L.lerChaves();
+  const reg = data.prevenda && data.prevenda[jogo];
+  if (!reg || !reg.h) throw new Falha(403, "Este jogo ainda nao foi liberado.", "nao_liberado");
+  const c = L.norm(codigo);
+  if (c.length !== 12 || !L.seguro(reg.h, PRE.hashCodigo(c))) {
+    await L.sleep(400);
+    throw new Falha(403, "Codigo invalido. Confira se digitou certo.", "codigo_invalido");
+  }
+  return res.status(200).json({ ok: true, liberado: true });
+}
+
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   try {
@@ -82,6 +114,10 @@ module.exports = async (req, res) => {
     const jogo = String(b.jogo || "").toLowerCase();
     const maquina = String(b.maquina || "").toLowerCase();
     const chave = norm(b.chave);
+    if (["prevenda_status", "prevenda_verificar"].includes(acao)) {
+      if (!PRE.JOGO_OK.test(jogo)) throw new Falha(400, "Pedido invalido.", "pedido");
+      return await prevenda(acao, jogo, b.codigo, res);
+    }
     if (!["ativar", "baixar"].includes(acao)) throw new Falha(400, "Pedido invalido.", "pedido");
     if (!/^[a-z0-9_-]{1,40}$/.test(jogo) || !/^[0-9a-f]{64}$/.test(maquina)) throw new Falha(400, "Pedido invalido.", "pedido");
     if (chave.length < 16 || chave.length > 40) throw new Falha(403, "Chave invalida. Confira se digitou certo.", "chave_invalida");
@@ -89,7 +125,7 @@ module.exports = async (req, res) => {
     if (acao === "ativar") return res.status(200).json({ ok: true });
     return res.status(200).json(Object.assign({ ok: true }, await linkDoJogo(jogo)));
   } catch (e) {
-    if (e instanceof Falha) return res.status(e.status).json({ ok: false, erro: e.erro, codigo: e.codigo });
+    if (e instanceof Falha || e instanceof L.Falha) return res.status(e.status).json({ ok: false, erro: e.erro, codigo: e.codigo });
     return res.status(500).json({ ok: false, erro: "Erro interno no servidor da TSS.", codigo: "interno" });
   }
 };

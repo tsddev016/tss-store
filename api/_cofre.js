@@ -54,12 +54,12 @@ async function exigirAdmin(senha) {
 async function lerChaves() {
   if (!process.env.GH_TOKEN) throw new Falha(500, "Servidor ainda sem GH_TOKEN configurado.", "config");
   const r = await fetch(`${GH}/repos/${COFRE}/contents/chaves.json`, { headers: hdr(), cache: "no-store" });
-  if (r.status === 404) return { data: { keys: {}, pedidos: {}, log: [], contas: {}, reembolsos: {}, cupons: {} }, sha: null };
+  if (r.status === 404) return { data: { keys: {}, pedidos: {}, log: [], contas: {}, reembolsos: {}, cupons: {}, prevenda: {} }, sha: null };
   if (!r.ok) throw new Falha(503, "Cofre da TSS indisponivel no momento. Tente de novo.", "cofre");
   const j = await r.json();
   const data = JSON.parse(Buffer.from(j.content, "base64").toString("utf8"));
   data.keys = data.keys || {}; data.pedidos = data.pedidos || {}; data.log = data.log || [];
-  data.contas = data.contas || {}; data.reembolsos = data.reembolsos || {}; data.cupons = data.cupons || {};
+  data.contas = data.contas || {}; data.reembolsos = data.reembolsos || {}; data.cupons = data.cupons || {}; data.prevenda = data.prevenda || {};
   return { data, sha: j.sha };
 }
 

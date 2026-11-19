@@ -44,6 +44,11 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
 <p class="mut">As chaves so aparecem agora. O servidor guarda apenas o codigo de verificacao.</p></div></section>
 
 <section id="t-jogos" hidden>
+<div class="card"><h2>Pre-venda: codigo de liberacao</h2>
+<p class="mut">Vale para jogos marcados como &quot;Em pre-venda&quot; no formulario abaixo. O jogo pede este codigo toda vez que abre; sem ele, fica na tela do cronometro. Quando a data de lancamento chega, o jogo abre sozinho. O codigo nao aparece em nenhum outro lugar.</p>
+<label>Jogo em pre-venda</label><select id="pv-jogo"></select>
+<p style="margin-top:12px"><button id="pv-ver">Ver codigo</button> <button class="s" id="pv-novo">Gerar codigo novo (o antigo para de valer)</button></p>
+<p><code id="pv-cod" style="font-size:22px;letter-spacing:2px"></code></p><div class="msg" id="pv-m"></div></div>
 <div class="card"><h2>Editar jogo publicado</h2>
 <p class="mut">Altere nome, preco, gratis/pago, capa, descricao e tags. Precisa do token do GitHub.</p>
 <label>Token do GitHub</label><input id="etk" type="password" autocomplete="off" placeholder="github_pat_…">
@@ -54,6 +59,8 @@ img.prev{max-width:220px;border-radius:8px;border:1px solid var(--line);margin-t
  <div><label>Preco (R$)</label><input id="ep" type="number" step="0.01" min="0" value="0"></div>
 </div>
 <label class="chk"><input id="eprot" type="checkbox"> Jogo pago (protegido — precisa de chave)</label>
+<label class="chk"><input id="eprev" type="checkbox"> Em pre-venda (pode comprar e baixar, mas o jogo so abre com o codigo de liberacao ou na data de lancamento)</label>
+<label>Lancamento (horario de Brasilia)</label><input id="elanc" type="datetime-local">
 <p class="mut" id="eprot-hint">Desmarcado = gratis (download direto). Marcado = pago (Mercado Pago + chave).</p>
 <label>Descricao</label><textarea id="edes" rows="3"></textarea>
 <label>Tags (separadas por virgula)</label><input id="etag" placeholder="TERROR, ONLINE, DEMO">
@@ -153,7 +160,7 @@ async function carregar(){
 function preencherEdit(){
  const id=$("ej").value;const g=(CAT.games||[]).find(x=>x.id===id);if(!g)return;
  $("en").value=g.name||"";$("ed").value=g.developer||"";$("ep").value=Number(g.preco)||0;
- $("eprot").checked=!!g.protegido;$("edes").value=g.description||"";
+ $("eprot").checked=!!g.protegido;$("eprev").checked=!!g.prevenda;$("elanc").value=g.lancamento||"";$("edes").value=g.description||"";
  $("etag").value=(g.tags||[]).join(", ");$("ech").value=g.changelog||"";$("el").value=g.launch||"";carregarMidia(g);$("ereq").value=g.requisitos||"";
  if(g.capsule_url){$("eprev").src="/"+g.capsule_url.replace(/^\//,"")+"?t="+Date.now();$("eprev").hidden=false}
  else{$("eprev").hidden=true}
@@ -167,12 +174,23 @@ async function catalogo(){
  document.querySelectorAll(".jg").forEach(s=>s.replaceChildren(...(CAT.games||[]).map(g=>el("option",{value:g.id},g.name))));
  $("pj").replaceChildren(...opts,el("option",{value:"__novo"},"+ Novo jogo…"));
  $("ej").replaceChildren(...(CAT.games||[]).map(g=>el("option",{value:g.id},g.name+" ("+g.id+")")));
- $("hu").value=(CAT.hub&&CAT.hub.download_url)||"";
+ $("hu").value=(CAT.hub&&CAT.hub.download_url)||"";pintarPrevenda();
  $("novo").hidden=$("pj").value!=="__novo";
  preencherEdit();
 }
 $("pj").onchange=()=>{$("novo").hidden=$("pj").value!=="__novo"};
 $("ej").onchange=preencherEdit;
+function pintarPrevenda(){
+ const l=((CAT&&CAT.games)||[]).filter(g=>g.prevenda),sel=$("pv-jogo"),ant=sel.value;
+ sel.replaceChildren(...(l.length?l.map(g=>el("option",{value:g.id},g.name+(g.lancamento?" (lanca "+g.lancamento.replace("T"," ")+")":""))):[el("option",{value:""},"Nenhum jogo em pre-venda")]));
+ if(ant&&l.some(g=>g.id===ant))sel.value=ant;
+}
+async function pvCodigo(novo){
+ const jogo=$("pv-jogo").value;if(!jogo){say("pv-m","Marque um jogo como Em pre-venda no formulario abaixo e salve.","err");return}
+ if(novo&&!confirm("Gerar codigo novo? O codigo atual para de funcionar."))return;
+ try{const d=await api(novo?"prevenda_novo_codigo":"prevenda_codigo",{jogo});$("pv-cod").textContent=d.codigo;say("pv-m",novo?"Codigo novo gerado. O anterior nao vale mais.":"Este e o codigo atual.","ok")}catch(e){$("pv-cod").textContent="";say("pv-m",e.message,"err")}
+}
+$("pv-ver").onclick=()=>pvCodigo(false);$("pv-novo").onclick=()=>pvCodigo(true);
 $("eprot").onchange=()=>{
  $("eprot-hint").textContent=$("eprot").checked
   ?"Marcado = pago (Mercado Pago + chave de ativacao)."
@@ -345,6 +363,7 @@ $("es").onclick=async()=>{
    g.developer=$("ed").value.trim();
    g.preco=Math.max(0,Number($("ep").value)||0);
    g.protegido=!!$("eprot").checked;
+   if($("eprev").checked){g.prevenda=true;if($("elanc").value)g.lancamento=$("elanc").value;else delete g.lancamento}else{delete g.prevenda;delete g.lancamento}
    g.description=$("edes").value.trim();
    g.tags=$("etag").value.split(",").map(t=>t.trim()).filter(Boolean);
    g.changelog=$("ech").value.trim()||g.changelog;
