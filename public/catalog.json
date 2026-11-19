@@ -79,6 +79,24 @@
         "https://tss-store.vercel.app/media/ashfall/foto-mwni1bf3-2.jpg"
       ],
       "requisitos": ""
+    },
+    {
+      "id": "bigcity",
+      "name": "BigCity",
+      "version": "1",
+      "developer": "ts_dv",
+      "description": "Pre venda",
+      "tags": [
+        "WORDBOXS"
+      ],
+      "capsule_url": "capsules/bigcity.png",
+      "download_url": "https://tss-store.vercel.app/api/baixar-gratis?jogo=bigcity",
+      "sha256": "6775e777b3050a355998d46aa381bc50d99a2823bc05ecf0e375c31d5a8de35e",
+      "size_mb": 1,
+      "launch": "nada",
+      "changelog": "",
+      "protegido": false,
+      "preco": 0
     }
   ]
 }
